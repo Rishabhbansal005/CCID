@@ -34,6 +34,9 @@ export const evidenceApi = {
       `/evidence/${id}/signed-url`,
       { params: { expires_in: expiresIn } }
     ).then((r) => r.data),
+
+  verifyIntegrity: (id: string) =>
+    apiClient.post<Evidence>(`/evidence/${id}/verify`).then((r) => r.data),
 };
 
 export default evidenceApi;

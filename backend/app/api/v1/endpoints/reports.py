@@ -25,6 +25,12 @@ async def _generate_report_task(report_id: str, case_id: str, config: dict, inve
         risk_result = db.table("risk_assessments").select("*").eq("case_id", case_id).single().execute()
         risk = risk_result.data if risk_result.data else None
         investigator = db.table("users").select("*").eq("id", investigator_id).single().execute().data or {}
+        
+        memory_results = []
+        evidence_ids = [e["id"] for e in evidence]
+        if evidence_ids:
+            mem_res = db.table("memory_analysis_results").select("*").in_("evidence_id", evidence_ids).execute()
+            memory_results = mem_res.data or []
 
         # Generate PDF
         pdf_bytes = generate_case_report(
@@ -35,6 +41,7 @@ async def _generate_report_task(report_id: str, case_id: str, config: dict, inve
             risk_assessment=risk,
             investigator=investigator,
             config=config,
+            memory_results=memory_results,
         )
 
         # Upload to storage

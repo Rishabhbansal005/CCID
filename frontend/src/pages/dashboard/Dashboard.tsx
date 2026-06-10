@@ -39,6 +39,51 @@ export default function Dashboard() {
     staleTime: 30_000,
   });
 
+  const { data: riskData = [], isLoading: isLoadingRisks } = useQuery({
+    queryKey: ['risk_assessments', 'dashboard'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('risk_assessments')
+        .select('*');
+      if (error) {
+        console.warn('[Dashboard] Error fetching risks:', error);
+        return [];
+      }
+      return data;
+    },
+    staleTime: 30_000,
+  });
+
+  const { data: reportsData = [], isLoading: isLoadingReports } = useQuery({
+    queryKey: ['reports', 'dashboard'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*');
+      if (error) {
+        console.warn('[Dashboard] Error fetching reports:', error);
+        return [];
+      }
+      return data;
+    },
+    staleTime: 30_000,
+  });
+
+  const { data: memoryData = [], isLoading: isLoadingMemory } = useQuery({
+    queryKey: ['memory_analyses', 'dashboard'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('memory_analysis_results')
+        .select('*');
+      if (error) {
+        console.warn('[Dashboard] Error fetching memory analyses:', error);
+        return [];
+      }
+      return data;
+    },
+    staleTime: 30_000,
+  });
+
   const cases = casesData;
   const total = cases.length;
 
@@ -48,6 +93,14 @@ export default function Dashboard() {
   const closedCases = cases.filter((c) => c.status === 'closed').length;
   const criticalCases = cases.filter((c) => c.priority === 'critical').length;
 
+  const criticalRisks = riskData.filter((r) => r.risk_level === 'critical').length;
+  const highRisks = riskData.filter((r) => r.risk_level === 'high').length;
+  const mediumRisks = riskData.filter((r) => r.risk_level === 'medium').length;
+  const lowRisks = riskData.filter((r) => r.risk_level === 'low').length;
+
+  const totalReports = reportsData.length;
+  const totalMemoryAnalyses = memoryData.filter((m) => m.analysis_status === 'completed').length;
+
   // Priority distribution for pie chart
   const priorityDist = (['critical', 'high', 'medium', 'low'] as CasePriority[]).map((p) => ({
     name: p,
@@ -56,7 +109,7 @@ export default function Dashboard() {
 
   // Dynamic Trend Data Generation (Last 6 Months)
   const trendData = React.useMemo(() => {
-    const months = [];
+    const months: { month: string, year: number, monthIndex: number, cases: number, closed: number }[] = [];
     const now = new Date();
     // Generate last 6 months labels
     for (let i = 5; i >= 0; i--) {
@@ -143,6 +196,74 @@ export default function Dashboard() {
             value={isLoading ? '...' : closedCases}
             color="var(--success)"
             colorMuted="var(--success-muted)"
+          />
+        </div>
+      </div>
+
+      {/* Risk Stat Cards */}
+      <h6 style={{ fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 16px 0', fontSize: 14 }}>
+        🛡️ Risk Assessments
+      </h6>
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-sm-6 col-xl-3">
+          <StatCard
+            icon="🚨"
+            label="Critical Risks"
+            value={isLoadingRisks ? '...' : criticalRisks}
+            color="var(--danger)"
+            colorMuted="var(--danger-muted)"
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-xl-3">
+          <StatCard
+            icon="⚠️"
+            label="High Risks"
+            value={isLoadingRisks ? '...' : highRisks}
+            color="var(--orange)"
+            colorMuted="var(--orange-muted)"
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-xl-3">
+          <StatCard
+            icon="🟡"
+            label="Medium Risks"
+            value={isLoadingRisks ? '...' : mediumRisks}
+            color="var(--warning)"
+            colorMuted="var(--warning-muted)"
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-xl-3">
+          <StatCard
+            icon="🟢"
+            label="Low Risks"
+            value={isLoadingRisks ? '...' : lowRisks}
+            color="var(--success)"
+            colorMuted="var(--success-muted)"
+          />
+        </div>
+      </div>
+
+      {/* Reports Stat */}
+      <h6 style={{ fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 16px 0', fontSize: 14 }}>
+        📄 Reports
+      </h6>
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-sm-6 col-xl-3">
+          <StatCard
+            icon="📄"
+            label="Reports Generated"
+            value={isLoadingReports ? '...' : totalReports}
+            color="var(--blue)"
+            colorMuted="rgba(59, 130, 246, 0.1)"
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-xl-3">
+          <StatCard
+            icon="🧠"
+            label="Memory Analyses Completed"
+            value={isLoadingMemory ? '...' : totalMemoryAnalyses}
+            color="var(--teal)"
+            colorMuted="rgba(45, 212, 191, 0.1)"
           />
         </div>
       </div>

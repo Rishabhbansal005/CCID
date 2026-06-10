@@ -2,6 +2,19 @@ from supabase import create_client, Client
 from app.core.config import settings
 import logging
 from typing import Optional
+import re
+import supabase._sync.client
+import supabase._async.client
+
+# Monkeypatch `re.match` in supabase clients to bypass the strict JWT regex check.
+# This prevents "Invalid API key" crashes when using modern Supabase opaque keys (e.g. sb_secret_...).
+class MockRe:
+    @staticmethod
+    def match(pattern, string, flags=0):
+        return True
+
+setattr(supabase._sync.client, "re", MockRe)
+setattr(supabase._async.client, "re", MockRe)
 
 logger = logging.getLogger(__name__)
 

@@ -121,6 +121,7 @@ export interface Evidence {
   storage_bucket: string;
   public_url?: string;
   hash_md5?: string;
+  hash_sha1?: string;
   hash_sha256?: string;
   hash_sha512?: string;
   evidence_type: EvidenceType;
@@ -221,20 +222,6 @@ export interface TimelineEvent {
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
-export interface ThreatActor {
-  name: string;
-  type: 'nation-state' | 'criminal' | 'insider' | 'hacktivist' | 'unknown';
-  motivation?: string;
-  sophistication?: string;
-}
-
-export interface AffectedAsset {
-  name: string;
-  type: string;
-  criticality: 'low' | 'medium' | 'high' | 'critical';
-  description?: string;
-}
-
 export interface RiskAssessment {
   id: string;
   case_id: string;
@@ -242,10 +229,10 @@ export interface RiskAssessment {
   likelihood: number; // 1–5
   impact: number; // 1–5
   risk_level: RiskLevel;
-  threat_actors: ThreatActor[];
-  affected_assets: AffectedAsset[];
-  vulnerabilities: Record<string, unknown>[];
-  mitigation_measures: Record<string, unknown>[];
+  threat_actors: string[];
+  affected_assets: string[];
+  vulnerabilities: string[];
+  mitigation_measures: string[];
   residual_risk?: string;
   analyst_notes?: string;
   assessed_by?: string;
@@ -308,6 +295,93 @@ export interface ActivityItem {
   timestamp: string;
   case_id?: string;
   case_number?: string;
+}
+
+// ============================================================
+// Network Analysis Types
+// ============================================================
+
+export interface IPConversation {
+  ip_a: string;
+  ip_b: string;
+  packets: number;
+  bytes: number;
+}
+
+export interface DNSQuery {
+  query_name: string;
+  query_type: string;
+  response_code?: string;
+  answers?: string[];
+}
+
+export interface SuspiciousIndicator {
+  type: string;
+  value: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+}
+
+// ============================================================
+// Memory Analysis Types
+// ============================================================
+
+export interface ProcessItem {
+  PID: number;
+  PPID: number;
+  ImageFileName: string;
+  Offset: number;
+  Threads: number;
+  Handles: number;
+  SessionId: number;
+  Wow64: boolean;
+  CreateTime: string;
+  ExitTime: string;
+}
+
+export interface MalfindHit {
+  PID: number;
+  Process: string;
+  Start: number;
+  End: number;
+  Protection: string;
+  CommitCharge: number;
+  PrivateMemory: number;
+  FileOutput: string;
+  Hexdump: string;
+  Disassembly: string;
+}
+
+export interface MemoryAnalysisSummary {
+  total_processes: number;
+  suspicious_processes_count: number;
+  malfind_hits: number;
+}
+
+export interface MemoryAnalysisResult {
+  id: string;
+  evidence_id: string;
+  analysis_status: 'pending' | 'processing' | 'completed' | 'failed';
+  memory_profile?: string;
+  process_list: ProcessItem[];
+  process_tree: any[]; // Depends on Volatility pstree format, often similar to pslist with depth
+  suspicious_processes: MalfindHit[];
+  analysis_summary: MemoryAnalysisSummary;
+  error_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NetworkAnalysisResult {
+  id: string;
+  evidence_id: string;
+  analysis_status: 'pending' | 'analyzing' | 'completed' | 'failed';
+  protocol_stats: Record<string, number>;
+  conversations: IPConversation[];
+  dns_queries: DNSQuery[];
+  suspicious_indicators: SuspiciousIndicator[];
+  created_at: string;
+  updated_at: string;
 }
 
 // ============================================================

@@ -1,0 +1,275 @@
+import React, { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import evidenceApi from '@/api/evidence';
+import { networkApi } from '@/api/network';
+import { memoryApi } from '@/api/memory';
+import { format } from 'date-fns';
+import NetworkAnalysisView from './NetworkAnalysisView';
+import MemoryAnalysisView from './MemoryAnalysisView';
+
+export default function EvidenceDetail() {
+  const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const [verifying, setVerifying] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { data: ev, isLoading, error: queryError } = useQuery({
+    queryKey: ['evidence', id],
+    queryFn: () => evidenceApi.get(id!),
+    enabled: !!id,
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: () => evidenceApi.verifyIntegrity(id!),
+    onMutate: () => setVerifying(true),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['evidence', id], data);
+      setVerifying(false);
+    },
+    onError: (err) => {
+      console.error('Verification failed', err);
+      setVerifying(false);
+      alert('Verification failed. See console for details.');
+    }
+  });
+
+  const isNetworkCapture = ev?.evidence_type === 'network_capture' || 
+                           ev?.original_file_name.endsWith('.pcap') || 
+                           ev?.original_file_name.endsWith('.pcapng');
+                           
+  const isMemoryDump = ev?.evidence_type === 'memory_dump' || 
+                       ev?.original_file_name.endsWith('.raw') || 
+                       ev?.original_file_name.endsWith('.mem') || 
+                       ev?.original_file_name.endsWith('.dmp');
+
+  const handleAnalyzeNetwork = async () => {
+    if (!ev) return;
+    setAnalyzing(true);
+    setError(null);
+    try {
+      await networkApi.analyze(ev.id);
+      queryClient.invalidateQueries({ queryKey: ['evidence', id] });
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || 'Failed to start network analysis');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleAnalyzeMemory = async () => {
+    if (!ev) return;
+    setAnalyzing(true);
+    setError(null);
+    try {
+      await memoryApi.analyze(ev.id);
+      queryClient.invalidateQueries({ queryKey: ['evidence', id] });
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || 'Failed to start memory analysis');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center' }}>
+        <div style={{ width: 40, height: 40, border: '3px solid var(--border-color)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+        <div style={{ color: 'var(--text-muted)' }}>Loading evidence...</div>
+      </div>
+    );
+  }
+
+  if (queryError || !ev) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">🚫</div>
+        <div className="empty-state-title">Evidence Not Found</div>
+        <div className="empty-state-text">This evidence doesn't exist or you don't have access.</div>
+        <button onClick={() => window.history.back()} className="btn btn-primary">Go Back</button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="page-header">
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+            <Link to={`/cases/${ev.case_id}`} style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13 }}>
+              ← Back to Case
+            </Link>
+            <span style={{ color: 'var(--text-muted)' }}>/</span>
+            <span className="font-mono" style={{ color: 'var(--teal)', fontSize: 13 }}>
+              {ev.evidence_number}
+            </span>
+          </div>
+          <h1 className="page-header-title">{ev.original_file_name}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+            {ev.is_verified ? (
+              <span style={{ background: 'var(--success-muted)', color: 'var(--success)', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, border: '1px solid rgba(16,185,129,0.3)' }}>
+                ✅ VERIFIED
+              </span>
+            ) : (
+              <span style={{ background: 'rgba(100,116,139,0.15)', color: 'var(--text-muted)', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+                ⚠️ UNVERIFIED
+              </span>
+            )}
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+              {ev.evidence_type.replace('_', ' ')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-4">
+        {/* Left Column: Metadata */}
+        <div className="col-12 col-md-5">
+          <div className="card mb-4">
+            <div className="card-body">
+              <h6 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
+                File Details
+              </h6>
+              {[
+                { label: 'Original Name', value: ev.original_file_name },
+                { label: 'File Type', value: ev.file_type.toUpperCase() },
+                { label: 'MIME Type', value: ev.mime_type || 'Unknown' },
+                { label: 'File Size', value: `${(ev.file_size / 1024 / 1024).toFixed(2)} MB` },
+                { label: 'Acquisition Method', value: ev.acquisition_method || 'N/A' },
+                { label: 'Source Device', value: ev.source_device || 'N/A' },
+                { label: 'Source Location', value: ev.source_location || 'N/A' },
+                { label: 'Uploaded At', value: format(new Date(ev.uploaded_at), 'MMM d, yyyy HH:mm') },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                    {value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Integrity Hashes */}
+        <div className="col-12 col-md-7">
+          <div className="card mb-4" style={{ border: ev.is_verified ? '1px solid rgba(16,185,129,0.4)' : undefined }}>
+            <div className="card-body">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                <div>
+                  <h6 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-heading)', marginBottom: 4 }}>
+                    Cryptographic Integrity
+                  </h6>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
+                    Cryptographic hashing ensures the evidence file has not been tampered with.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {isNetworkCapture && (
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={handleAnalyzeNetwork}
+                      disabled={analyzing}
+                    >
+                      {analyzing ? 'Analyzing...' : 'Analyze Network'}
+                    </button>
+                  )}
+                  {isMemoryDump && (
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={handleAnalyzeMemory}
+                      disabled={analyzing}
+                    >
+                      {analyzing ? 'Analyzing...' : 'Analyze Memory'}
+                    </button>
+                  )}
+                  {!ev.is_verified && (
+                    <button 
+                      className="btn btn-primary btn-sm" 
+                      onClick={() => verifyMutation.mutate()}
+                      disabled={verifying}
+                    >
+                      {verifying ? 'Calculating...' : 'Verify Integrity'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {[
+                { label: 'MD5', value: ev.hash_md5 },
+                { label: 'SHA1', value: ev.hash_sha1 },
+                { label: 'SHA256', value: ev.hash_sha256 },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: 4 }}>
+                    {label}
+                  </div>
+                  <div 
+                    className="font-mono" 
+                    style={{ 
+                      background: 'var(--bg-input)', 
+                      padding: '10px 14px', 
+                      borderRadius: 6, 
+                      fontSize: 13, 
+                      color: value ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      wordBreak: 'break-all',
+                      border: '1px solid var(--border-subtle)'
+                    }}
+                  >
+                    {value || '(Click Verify Integrity to calculate)'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-body">
+              <h6 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
+                Chain of Custody
+              </h6>
+              {ev.chain_of_custody && ev.chain_of_custody.length > 0 ? (
+                <div style={{ position: 'relative', paddingLeft: 20 }}>
+                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: 7, width: 2, background: 'var(--border-color)' }}></div>
+                  {ev.chain_of_custody.map((event, idx) => (
+                    <div key={idx} style={{ position: 'relative', marginBottom: 20 }}>
+                      <div style={{ position: 'absolute', left: -20, top: 4, width: 10, height: 10, borderRadius: '50%', background: 'var(--teal)', border: '2px solid var(--bg-card)' }}></div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)' }}>
+                        {event.action.toUpperCase()}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+                        {format(new Date(event.timestamp), 'MMM d, yyyy HH:mm')} by {event.user_name || 'System'}
+                      </div>
+                      {event.notes && (
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{event.notes}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No chain of custody records found.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {isNetworkCapture && (
+        <div style={{ marginTop: 24 }}>
+          <NetworkAnalysisView evidenceId={ev.id} />
+        </div>
+      )}
+      {isMemoryDump && (
+        <div style={{ marginTop: 24 }}>
+          <MemoryAnalysisView evidenceId={ev.id} />
+        </div>
+      )}
+    </div>
+  );
+}

@@ -307,8 +307,16 @@ export default function CaseDetail() {
                     <tbody>
                       {evidence.map((ev) => (
                         <tr key={ev.id}>
-                          <td><span className="font-mono" style={{ color: 'var(--teal)', fontSize: 12 }}>{ev.evidence_number}</span></td>
-                          <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{ev.original_file_name}</td>
+                          <td>
+                            <Link to={`/evidence/${ev.id}`} style={{ textDecoration: 'none' }}>
+                              <span className="font-mono" style={{ color: 'var(--teal)', fontSize: 12 }}>{ev.evidence_number}</span>
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/evidence/${ev.id}`} style={{ textDecoration: 'none', color: 'var(--text-primary)', fontWeight: 500 }}>
+                              {ev.original_file_name}
+                            </Link>
+                          </td>
                           <td style={{ fontSize: 12, textTransform: 'capitalize' }}>{ev.evidence_type}</td>
                           <td style={{ fontSize: 12 }}>{(ev.file_size / 1024 / 1024).toFixed(2)} MB</td>
                           <td>

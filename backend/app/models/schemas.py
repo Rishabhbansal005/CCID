@@ -123,6 +123,7 @@ class EvidenceCreate(EvidenceBase):
     case_id: str
     storage_path: str
     hash_md5: Optional[str] = None
+    hash_sha1: Optional[str] = None
     hash_sha256: Optional[str] = None
     hash_sha512: Optional[str] = None
 
@@ -146,6 +147,7 @@ class EvidenceResponse(EvidenceBase, TimestampMixin):
     storage_bucket: str
     public_url: Optional[str] = None
     hash_md5: Optional[str] = None
+    hash_sha1: Optional[str] = None
     hash_sha256: Optional[str] = None
     hash_sha512: Optional[str] = None
     chain_of_custody: List[ChainOfCustodyEvent] = []
