@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
-const ROLES = [
-  { value: 'investigator', label: '🔍 Investigator — Full investigation access' },
-  { value: 'viewer', label: '👁️ Viewer — Read-only access' },
-];
+
 
 export default function Register() {
   const { signUp, session } = useAuth();
@@ -14,6 +11,8 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Once session is set after registration, navigate to dashboard
   useEffect(() => {
@@ -124,48 +123,65 @@ export default function Register() {
             />
           </div>
 
-          <div className="mb-3">
-            <label htmlFor="reg-role" className="form-label">Access Role</label>
-            <select
-              id="reg-role"
-              name="role"
-              className="form-select"
-              value={form.role}
-              onChange={handleChange}
-            >
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
-            </select>
-          </div>
+
 
           <div className="mb-3">
             <label htmlFor="reg-password" className="form-label">Password</label>
-            <input
-              id="reg-password"
-              name="password"
-              type="password"
-              className="form-control"
-              placeholder="Min. 8 characters"
-              value={form.password}
-              onChange={handleChange}
-              required
-              minLength={8}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                id="reg-password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                className="form-control"
+                placeholder="Min. 8 characters"
+                value={form.password}
+                onChange={handleChange}
+                required
+                minLength={8}
+                style={{ paddingRight: 40 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                style={{ 
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0,
+                  fontSize: 16
+                }}
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? '👁️‍🗨️' : '👁️'}
+              </button>
+            </div>
           </div>
 
           <div className="mb-4">
             <label htmlFor="reg-confirm" className="form-label">Confirm Password</label>
-            <input
-              id="reg-confirm"
-              name="confirmPassword"
-              type="password"
-              className="form-control"
-              placeholder="Repeat password"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                id="reg-confirm"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                className="form-control"
+                placeholder="Repeat password"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                required
+                style={{ paddingRight: 40 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((s) => !s)}
+                style={{ 
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0,
+                  fontSize: 16
+                }}
+                title={showConfirmPassword ? "Hide password" : "Show password"}
+              >
+                {showConfirmPassword ? '👁️‍🗨️' : '👁️'}
+              </button>
+            </div>
           </div>
 
           <button

@@ -80,24 +80,39 @@ export default function Login() {
           <div className="mb-4">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <label htmlFor="login-password" className="form-label" style={{ marginBottom: 0 }}>Password</label>
+              <a 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); alert("Password reset flow will be configured by your administrator."); }}
+                style={{ color: 'var(--teal)', fontSize: 12, textDecoration: 'none' }}
+              >
+                Forgot password?
+              </a>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
+                className="form-control"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                style={{ paddingRight: 40 }}
+              />
               <button
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
-                style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, cursor: 'pointer', padding: 0 }}
+                style={{ 
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0,
+                  fontSize: 16
+                }}
+                title={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? '👁️‍🗨️' : '👁️'}
               </button>
             </div>
-            <input
-              id="login-password"
-              type={showPassword ? 'text' : 'password'}
-              className="form-control"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
           </div>
 
           <button

@@ -36,9 +36,6 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
 
       {/* Breadcrumbs */}
       <div className="topbar-breadcrumb">
-        <Link to="/dashboard" className="topbar-breadcrumb-item" style={{ textDecoration: 'none' }}>
-          Home
-        </Link>
         {pathParts.map((part, idx) => {
           const path = '/' + pathParts.slice(0, idx + 1).join('/');
           const isLast = idx === pathParts.length - 1;
@@ -48,7 +45,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
 
           return (
             <React.Fragment key={path}>
-              <span className="topbar-breadcrumb-sep">›</span>
+              {idx > 0 && <span className="topbar-breadcrumb-sep">›</span>}
               {isLast ? (
                 <span className="topbar-breadcrumb-item active">{label}</span>
               ) : (

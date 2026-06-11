@@ -54,7 +54,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       {/* Logo */}
-      <div className="sidebar-logo">
+      <div className="sidebar-logo" style={collapsed ? { flexDirection: 'column', padding: '20px 0', alignItems: 'center' } : undefined}>
         <div className="sidebar-logo-icon">🔍</div>
         {!collapsed && (
           <div className="sidebar-logo-text">
@@ -65,7 +65,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <button
           onClick={onToggle}
           style={{
-            marginLeft: collapsed ? 'auto' : 'auto',
+            marginLeft: collapsed ? '0' : 'auto',
+            marginTop: collapsed ? '16px' : '0',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
