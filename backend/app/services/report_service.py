@@ -136,6 +136,7 @@ def generate_case_report(
     investigator: Dict[str, Any],
     config: Dict[str, Any],
     memory_results: Optional[List[Dict[str, Any]]] = None,
+    correlations: Optional[List[Dict[str, Any]]] = None,
 ) -> bytes:
     buffer = io.BytesIO()
     styles = get_styles()
@@ -210,10 +211,11 @@ def generate_case_report(
         "8. Forensic Analysis Results",
         "9. Timeline Reconstruction",
         "10. Risk & Impact Assessment",
-        "11. Aggregated Recommendations",
-        "12. Conclusion",
-        "13. Report Authorization",
-        "14. Appendix"
+        "11. Investigation Intelligence & Correlations",
+        "12. Aggregated Recommendations",
+        "13. Conclusion",
+        "14. Report Authorization",
+        "15. Appendix"
     ]
     
     for sec in sections:
@@ -656,9 +658,42 @@ def generate_case_report(
     story.append(PageBreak())
 
     # ============================================================
+    # 11. INVESTIGATION INTELLIGENCE & CORRELATIONS
+    # ============================================================
+    story.append(Paragraph("11. Investigation Intelligence & Correlations", styles["h1"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=DARK_BLUE, spaceAfter=12))
+
+    if correlations:
+        story.append(Paragraph(f"The automated correlation engine detected <b>{len(correlations)}</b> cross-source indicators.", styles["body"]))
+        
+        c_data = [["IOC", "Type", "Confidence", "Severity", "Enrichment"]]
+        for c in correlations:
+            ioc = str(c.get("ioc", ""))[:30]
+            ioc_type = c.get("ioc_type", "unknown")
+            conf = str(c.get("confidence_score", 0))
+            sev = _badge_text(c.get("correlation_severity", ""))
+            tc = c.get("enrichment_data", {}).get("threat_category", "Unknown")
+            c_data.append([ioc, ioc_type, conf, sev, tc])
+            
+        c_table = Table(c_data, colWidths=[5*cm, 3*cm, 2.5*cm, 2.5*cm, 4*cm])
+        c_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), DARK_BLUE),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        ]))
+        story.append(c_table)
+    else:
+        story.append(Paragraph("No multi-source correlations were detected during this analysis.", styles["body"]))
+        
+    story.append(PageBreak())
+
+    # ============================================================
     # 12. AGGREGATED RECOMMENDATIONS
     # ============================================================
-    story.append(Paragraph("11. Aggregated Recommendations", styles["h1"]))
+    story.append(Paragraph("12. Aggregated Recommendations", styles["h1"]))
     story.append(HRFlowable(width="100%", thickness=1, color=DARK_BLUE, spaceAfter=12))
     
     immediate = []
@@ -705,7 +740,7 @@ def generate_case_report(
     # ============================================================
     # 13. CONCLUSION
     # ============================================================
-    story.append(Paragraph("12. Conclusion", styles["h1"]))
+    story.append(Paragraph("13. Conclusion", styles["h1"]))
     story.append(HRFlowable(width="100%", thickness=1, color=DARK_BLUE, spaceAfter=12))
     
     conc_text = (
@@ -725,7 +760,7 @@ def generate_case_report(
     # ============================================================
     # 14. REPORT AUTHORIZATION
     # ============================================================
-    story.append(Paragraph("13. Report Authorization", styles["h1"]))
+    story.append(Paragraph("14. Report Authorization", styles["h1"]))
     story.append(HRFlowable(width="100%", thickness=1, color=DARK_BLUE, spaceAfter=12))
     
     story.append(Paragraph(
@@ -746,7 +781,7 @@ def generate_case_report(
     # ============================================================
     # 15. APPENDIX
     # ============================================================
-    story.append(Paragraph("14. Appendix", styles["h1"]))
+    story.append(Paragraph("15. Appendix", styles["h1"]))
     story.append(HRFlowable(width="100%", thickness=1, color=DARK_BLUE, spaceAfter=12))
     
     story.append(Paragraph("<b>A. Evidence Hashes (SHA256)</b>", styles["h3"]))

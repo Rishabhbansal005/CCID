@@ -26,10 +26,6 @@ import NewCase from '@/pages/cases/NewCase';
 import EvidenceUpload from '@/pages/evidence/EvidenceUpload';
 import EvidenceDetail from '@/pages/evidence/EvidenceDetail';
 
-// Placeholder pages (Phase 4 — partial)
-import {
-  ForensicsPlaceholder,
-} from '@/pages/Placeholders';
 
 // Findings module (fully implemented)
 import FindingsList from '@/pages/findings/FindingsList';
@@ -101,8 +97,6 @@ function App() {
                 <Route path="/reports" element={<ReportList />} />
                 <Route path="/reports/new" element={<ReportWizard />} />
                 <Route path="/reports/:id" element={<ReportDetail />} />
-
-                <Route path="/forensics" element={<ForensicsPlaceholder />} />
 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />

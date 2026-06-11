@@ -6,8 +6,13 @@ import evidenceApi from '@/api/evidence';
 import { StatusBadge, PriorityBadge } from '@/components/shared/Badges';
 import { format } from 'date-fns';
 import type { CaseStatus, CasePriority } from '@/types';
+import CaseTimeline from './CaseTimeline';
+import CaseFindings from './CaseFindings';
+import CaseRiskTab from './tabs/CaseRiskTab';
+import CaseReportsTab from './tabs/CaseReportsTab';
+import CaseCorrelationsTab from './tabs/CaseCorrelationsTab';
 
-type ActiveTab = 'overview' | 'evidence' | 'findings' | 'timeline' | 'risk' | 'reports';
+type ActiveTab = 'overview' | 'evidence' | 'findings' | 'correlations' | 'timeline' | 'risk' | 'reports';
 
 export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -84,6 +89,7 @@ export default function CaseDetail() {
     { key: 'overview', label: '📋 Overview' },
     { key: 'evidence', label: '🔬 Evidence', count: stats?.evidence_count },
     { key: 'findings', label: '🎯 Findings', count: stats?.findings_count },
+    { key: 'correlations', label: '🕸️ Correlations' },
     { key: 'timeline', label: '📅 Timeline', count: stats?.timeline_events },
     { key: 'risk', label: '🛡️ Risk' },
     { key: 'reports', label: '📄 Reports' },
@@ -121,7 +127,7 @@ export default function CaseDetail() {
           >
             {editing ? 'Cancel' : '✏️ Edit'}
           </button>
-          <Link to={`/evidence?case=${id}`} className="btn btn-primary">
+          <Link to={`/evidence/upload?case=${id}`} className="btn btn-primary">
             + Upload Evidence
           </Link>
         </div>
@@ -300,6 +306,7 @@ export default function CaseDetail() {
                         <th>Filename</th>
                         <th>Type</th>
                         <th>Size</th>
+                        <th>Status</th>
                         <th>SHA256</th>
                         <th>Uploaded</th>
                       </tr>
@@ -320,6 +327,23 @@ export default function CaseDetail() {
                           <td style={{ fontSize: 12, textTransform: 'capitalize' }}>{ev.evidence_type}</td>
                           <td style={{ fontSize: 12 }}>{(ev.file_size / 1024 / 1024).toFixed(2)} MB</td>
                           <td>
+                            {(() => {
+                              const s = ev.processing_status || 'pending';
+                              const cfg: Record<string, { bg: string; color: string }> = {
+                                analyzed:   { bg: 'rgba(16,185,129,0.15)', color: 'var(--success)' },
+                                processing: { bg: 'rgba(0,212,255,0.15)',   color: 'var(--teal)' },
+                                error:      { bg: 'rgba(239,68,68,0.15)',   color: 'var(--danger)' },
+                                pending:    { bg: 'rgba(100,116,139,0.15)', color: 'var(--text-muted)' },
+                              };
+                              const { bg, color } = cfg[s] || cfg['pending'];
+                              return (
+                                <span style={{ background: bg, color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                  {s}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                          <td>
                             {ev.hash_sha256 && (
                               <span className="hash-display">
                                 {ev.hash_sha256.substring(0, 12)}...
@@ -338,20 +362,29 @@ export default function CaseDetail() {
             </div>
           )}
 
-          {/* Coming Soon tabs */}
-          {['findings', 'timeline', 'risk', 'reports'].includes(activeTab) && (
-            <div className="empty-state">
-              <div className="empty-state-icon">🔜</div>
-              <div className="empty-state-title">
-                {activeTab === 'findings' && 'Findings Management'}
-                {activeTab === 'timeline' && 'Investigation Timeline'}
-                {activeTab === 'risk' && 'Risk Assessment'}
-                {activeTab === 'reports' && 'PDF Reports'}
-              </div>
-              <div className="empty-state-text">
-                This module is ready for Phase 4 implementation. The backend API is fully functional.
-              </div>
-            </div>
+          {/* Timeline Tab */}
+          {activeTab === 'timeline' && (
+            <CaseTimeline caseId={id!} />
+          )}
+
+          {/* Findings Tab */}
+          {activeTab === 'findings' && (
+            <CaseFindings caseId={id!} />
+          )}
+
+          {/* Risk Tab */}
+          {activeTab === 'risk' && (
+            <CaseRiskTab caseId={id!} />
+          )}
+
+          {/* Reports Tab */}
+          {activeTab === 'reports' && (
+            <CaseReportsTab caseId={id!} caseNumber={c.case_number} />
+          )}
+
+          {/* Correlations Tab */}
+          {activeTab === 'correlations' && (
+            <CaseCorrelationsTab caseId={id!} />
           )}
         </div>
       </div>

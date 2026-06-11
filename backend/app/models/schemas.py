@@ -186,6 +186,7 @@ class FindingBase(BaseModel):
     tags: List[str] = []
     ioc_indicators: List[IOCIndicator] = []
     recommendations: Optional[str] = None
+    analysis_source: Optional[str] = None
 
 
 class FindingCreate(FindingBase):
@@ -352,6 +353,54 @@ class ReportResponse(ReportBase, TimestampMixin):
     class Config:
         from_attributes = True
 
+class MemoryAnalysisResult(BaseModel):
+    id: UUID4
+    evidence_id: UUID4
+    analysis_status: str
+    memory_profile: Optional[str] = None
+    process_list: List[Dict[str, Any]] = []
+    process_tree: List[Dict[str, Any]] = []
+    suspicious_processes: List[Dict[str, Any]] = []
+    analysis_summary: Dict[str, Any] = {}
+    error_message: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+# ============================================================
+# Phase 4: Browser Analysis Types
+# ============================================================
+
+class BrowserAnalysisResult(BaseModel):
+    id: UUID4
+    evidence_id: UUID4
+    analysis_status: str
+    browser_type: Optional[str] = None
+    history_entries: List[Dict[str, Any]] = []
+    downloads: List[Dict[str, Any]] = []
+    cookies: List[Dict[str, Any]] = []
+    bookmarks: List[Dict[str, Any]] = []
+    suspicious_urls: List[Dict[str, Any]] = []
+    search_terms: List[Dict[str, Any]] = []
+    analysis_summary: Dict[str, Any] = {}
+    error_message: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+# ============================================================
+# Phase 4: USB Analysis Types
+# ============================================================
+
+class UsbAnalysisResult(BaseModel):
+    id: UUID4
+    evidence_id: UUID4
+    analysis_status: str
+    connected_devices: List[Dict[str, Any]] = []
+    suspicious_devices: List[Dict[str, Any]] = []
+    analysis_summary: Dict[str, Any] = {}
+    error_message: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
 
 # ============================================================
 # Dashboard Stats
@@ -366,12 +415,66 @@ class DashboardStats(BaseModel):
     total_findings: int
     critical_findings: int
     reports_generated: int
+    total_correlations: int = 0
+    critical_correlations: int = 0
     recent_activity: List[Dict[str, Any]] = []
+    priority_distribution: List[Dict[str, Any]] = []
+    trend_data: List[Dict[str, Any]] = []
 
 
 # ============================================================
 # Generic Responses
 # ============================================================
+
+# ============================================================
+# Phase 5 Schemas: Correlations & Attack Chains
+# ============================================================
+
+class CorrelationBase(BaseModel):
+    correlation_type: str
+    ioc: str
+    ioc_type: str
+    confidence_score: int = 50
+    correlation_severity: str = "medium"
+    related_sources: List[str] = []
+    related_evidence: List[str] = []
+    related_findings: List[str] = []
+    enrichment_data: Dict[str, Any] = {}
+    description: Optional[str] = None
+
+
+class CorrelationCreate(CorrelationBase):
+    case_id: str
+
+
+class CorrelationResponse(CorrelationBase, TimestampMixin):
+    id: str
+    case_id: str
+
+    class Config:
+        from_attributes = True
+
+
+class AttackChainBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    severity: str = "high"
+    nodes: List[Dict[str, Any]] = []
+    edges: List[Dict[str, Any]] = []
+    correlations: List[str] = []
+
+
+class AttackChainCreate(AttackChainBase):
+    case_id: str
+
+
+class AttackChainResponse(AttackChainBase, TimestampMixin):
+    id: str
+    case_id: str
+
+    class Config:
+        from_attributes = True
+
 
 class MessageResponse(BaseModel):
     message: str

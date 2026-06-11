@@ -65,6 +65,7 @@ async def run_volatility_analysis(evidence_id: str, case_id: str, storage_path: 
                     "severity": "high",
                     "status": "open",
                     "category": "malware",
+                    "analysis_source": "Memory Analysis",
                     "ioc_indicators": malfind_hits[:10], # Store top 10 as examples
                     "created_by": current_user_id
                 }
@@ -85,7 +86,7 @@ async def run_volatility_analysis(evidence_id: str, case_id: str, storage_path: 
             # Timeline event
             timeline_event = {
                 "case_id": case_id,
-                "event_type": "system",
+                "event_type": "memory_analysis",
                 "title": "Memory Analysis Completed",
                 "description": f"Volatility extracted {len(results.get('process_list', []))} processes and found {len(malfind_hits)} malfind hits.",
                 "event_time": datetime.utcnow().isoformat(),
@@ -93,12 +94,20 @@ async def run_volatility_analysis(evidence_id: str, case_id: str, storage_path: 
                 "evidence_id": evidence_id
             }
             db.table("timeline_events").insert(timeline_event).execute()
+
+            # Trigger correlation engine which will also update risk
+            from app.services.correlation_engine import generate_correlations_for_case
+            generate_correlations_for_case(case_id, current_user_id)
             
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
                 
     except Exception as e:
+        # Auto update case risk
+        from app.services.risk_service import auto_update_case_risk
+        auto_update_case_risk(case_id, current_user_id)
+
         logger.error(f"Memory analysis failed for evidence {evidence_id}: {e}")
         db.table("memory_analysis_results").update({
             "analysis_status": "failed",
@@ -147,7 +156,7 @@ async def start_memory_analysis(
     # Dispatch timeline event for starting analysis
     timeline_event = {
         "case_id": ev.get("case_id"),
-        "event_type": "system",
+        "event_type": "memory_analysis",
         "title": "Memory Analysis Started",
         "description": f"Started Volatility 3 analysis on {ev.get('original_file_name')}",
         "event_time": datetime.utcnow().isoformat(),

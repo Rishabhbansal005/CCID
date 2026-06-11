@@ -1,14 +1,9 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
-    auth,
-    cases,
-    evidence,
-    findings,
-    timeline,
-    risk,
-    reports,
-    network_analysis,
-    memory_analysis
+    cases, evidence, findings, auth, 
+    timeline, reports, risk, network_analysis, memory_analysis, dashboard,
+    browser_analysis, usb_analysis, correlations, enrichment,
+    event_log_analysis
 )
 from app.services.forensics import VolatilityAdapter, WiresharkAdapter, AutopsyAdapter, FTKAdapter
 
@@ -19,10 +14,16 @@ api_router.include_router(cases.router)
 api_router.include_router(evidence.router)
 api_router.include_router(findings.router)
 api_router.include_router(timeline.router)
-api_router.include_router(risk.router)
 api_router.include_router(reports.router)
-api_router.include_router(network_analysis.router, prefix="/forensics")
-api_router.include_router(memory_analysis.router, prefix="/forensics")
+api_router.include_router(risk.router)
+api_router.include_router(network_analysis.router)
+api_router.include_router(memory_analysis.router)
+api_router.include_router(browser_analysis.router)
+api_router.include_router(usb_analysis.router)
+api_router.include_router(dashboard.router)
+api_router.include_router(correlations.router)
+api_router.include_router(enrichment.router)
+api_router.include_router(event_log_analysis.router)
 
 
 @api_router.get("/health", tags=["Health"])

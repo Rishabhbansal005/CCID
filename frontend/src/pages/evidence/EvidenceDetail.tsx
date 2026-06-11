@@ -4,9 +4,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import evidenceApi from '@/api/evidence';
 import { networkApi } from '@/api/network';
 import { memoryApi } from '@/api/memory';
+import browserApi from '@/api/browser';
+import usbApi from '@/api/usb';
 import { format } from 'date-fns';
 import NetworkAnalysisView from './NetworkAnalysisView';
 import MemoryAnalysisView from './MemoryAnalysisView';
+import BrowserAnalysisView from './BrowserAnalysisView';
+import UsbAnalysisView from './UsbAnalysisView';
+import EventLogAnalysisView from './EventLogAnalysisView';
+import eventLogsApi from '@/api/eventLogs';
 
 export default function EvidenceDetail() {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +50,16 @@ export default function EvidenceDetail() {
                        ev?.original_file_name.endsWith('.mem') || 
                        ev?.original_file_name.endsWith('.dmp');
 
+  const isBrowserArtifact = ev?.original_file_name.toLowerCase().includes('history') ||
+                            ev?.original_file_name.toLowerCase().includes('places.sqlite') ||
+                            ev?.original_file_name.toLowerCase().includes('bookmarks');
+
+  const isUsbArtifact = ev?.original_file_name.toLowerCase().includes('system') ||
+                        ev?.original_file_name.toLowerCase().includes('setupapi') ||
+                        ev?.original_file_name.toLowerCase().endsWith('.lnk');
+
+  const isEventLogArtifact = ev?.original_file_name.toLowerCase().endsWith('.evtx');
+
   const handleAnalyzeNetwork = async () => {
     if (!ev) return;
     setAnalyzing(true);
@@ -69,6 +85,55 @@ export default function EvidenceDetail() {
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.detail || 'Failed to start memory analysis');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleAnalyzeBrowser = async () => {
+    if (!ev) return;
+    setAnalyzing(true);
+    setError(null);
+    try {
+      await browserApi.startAnalysis(ev.id);
+      queryClient.invalidateQueries({ queryKey: ['evidence', id] });
+      // We also need to invalidate the specific analysis query so the UI updates
+      queryClient.invalidateQueries({ queryKey: ['browser-analysis', ev.id] });
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || 'Failed to start browser analysis');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleAnalyzeUsb = async () => {
+    if (!ev) return;
+    setAnalyzing(true);
+    setError(null);
+    try {
+      await usbApi.startAnalysis(ev.id);
+      queryClient.invalidateQueries({ queryKey: ['evidence', id] });
+      queryClient.invalidateQueries({ queryKey: ['usb-analysis', ev.id] });
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || 'Failed to start USB analysis');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleAnalyzeEventLogs = async () => {
+    if (!ev) return;
+    setAnalyzing(true);
+    setError(null);
+    try {
+      await eventLogsApi.startAnalysis(ev.id);
+      queryClient.invalidateQueries({ queryKey: ['evidence', id] });
+      queryClient.invalidateQueries({ queryKey: ['event-log-analysis', ev.id] });
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || 'Failed to start Event Log analysis');
     } finally {
       setAnalyzing(false);
     }
@@ -189,6 +254,33 @@ export default function EvidenceDetail() {
                       {analyzing ? 'Analyzing...' : 'Analyze Memory'}
                     </button>
                   )}
+                  {isBrowserArtifact && (
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={handleAnalyzeBrowser}
+                      disabled={analyzing}
+                    >
+                      {analyzing ? 'Analyzing...' : 'Analyze Browser'}
+                    </button>
+                  )}
+                  {isUsbArtifact && (
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={handleAnalyzeUsb}
+                      disabled={analyzing}
+                    >
+                      {analyzing ? 'Analyzing...' : 'Analyze USB'}
+                    </button>
+                  )}
+                  {isEventLogArtifact && (
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={handleAnalyzeEventLogs}
+                      disabled={analyzing}
+                    >
+                      {analyzing ? 'Analyzing...' : 'Analyze Event Logs'}
+                    </button>
+                  )}
                   {!ev.is_verified && (
                     <button 
                       className="btn btn-primary btn-sm" 
@@ -268,6 +360,21 @@ export default function EvidenceDetail() {
       {isMemoryDump && (
         <div style={{ marginTop: 24 }}>
           <MemoryAnalysisView evidenceId={ev.id} />
+        </div>
+      )}
+      {isBrowserArtifact && (
+        <div style={{ marginTop: 24 }}>
+          <BrowserAnalysisView evidenceId={ev.id} />
+        </div>
+      )}
+      {isUsbArtifact && (
+        <div style={{ marginTop: 24 }}>
+          <UsbAnalysisView evidenceId={ev.id} />
+        </div>
+      )}
+      {isEventLogArtifact && (
+        <div style={{ marginTop: 24 }}>
+          <EventLogAnalysisView evidenceId={ev.id} />
         </div>
       )}
     </div>

@@ -14,3 +14,6 @@ aiofiles==23.2.1
 slowapi==0.1.9
 pyshark==0.6
 nest_asyncio==1.6.0
+python-evtx==0.7.4
+LnkParse3==1.4.0
+python-registry==1.4.0

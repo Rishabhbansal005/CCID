@@ -10,6 +10,8 @@ import { supabase } from '@/lib/supabase';
 import StatCard from '@/components/shared/StatCard';
 import { StatusBadge, PriorityBadge } from '@/components/shared/Badges';
 import type { Case, CasePriority } from '@/types';
+import dashboardApi from '@/api/dashboard';
+import casesApi from '@/api/cases';
 import { formatDistanceToNow } from 'date-fns';
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -22,125 +24,25 @@ const PRIORITY_COLORS: Record<string, string> = {
 export default function Dashboard() {
   const { user } = useAuth();
 
-  const { data: casesData = [], isLoading } = useQuery({
-    queryKey: ['cases', 'dashboard-direct'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cases')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(500); // Increased limit to gather enough data for the 6-month trend
-      if (error) {
-        console.warn('[Dashboard] Error fetching cases:', error);
-        return [];
-      }
-      return (data || []) as Case[];
-    },
-    staleTime: 30_000,
+  const { data: stats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => dashboardApi.getStats(),
   });
 
-  const { data: riskData = [], isLoading: isLoadingRisks } = useQuery({
-    queryKey: ['risk_assessments', 'dashboard'],
+  const { data: recentCases = [], isLoading: isLoadingCases } = useQuery({
+    queryKey: ['cases', 'recent'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('risk_assessments')
-        .select('*');
-      if (error) {
-        console.warn('[Dashboard] Error fetching risks:', error);
-        return [];
-      }
-      return data;
+      const res = await casesApi.list();
+      return res.items.slice(0, 5);
     },
-    staleTime: 30_000,
   });
 
-  const { data: reportsData = [], isLoading: isLoadingReports } = useQuery({
-    queryKey: ['reports', 'dashboard'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('reports')
-        .select('*');
-      if (error) {
-        console.warn('[Dashboard] Error fetching reports:', error);
-        return [];
-      }
-      return data;
-    },
-    staleTime: 30_000,
-  });
-
-  const { data: memoryData = [], isLoading: isLoadingMemory } = useQuery({
-    queryKey: ['memory_analyses', 'dashboard'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('memory_analysis_results')
-        .select('*');
-      if (error) {
-        console.warn('[Dashboard] Error fetching memory analyses:', error);
-        return [];
-      }
-      return data;
-    },
-    staleTime: 30_000,
-  });
-
-  const cases = casesData;
-  const total = cases.length;
-
-  // Aggregate stats
-  const openCases = cases.filter((c) => c.status === 'open').length;
-  const activeCases = cases.filter((c) => c.status === 'active').length;
-  const closedCases = cases.filter((c) => c.status === 'closed').length;
-  const criticalCases = cases.filter((c) => c.priority === 'critical').length;
-
-  const criticalRisks = riskData.filter((r) => r.risk_level === 'critical').length;
-  const highRisks = riskData.filter((r) => r.risk_level === 'high').length;
-  const mediumRisks = riskData.filter((r) => r.risk_level === 'medium').length;
-  const lowRisks = riskData.filter((r) => r.risk_level === 'low').length;
-
-  const totalReports = reportsData.length;
-  const totalMemoryAnalyses = memoryData.filter((m) => m.analysis_status === 'completed').length;
+  const isLoading = isLoadingStats || isLoadingCases;
 
   // Priority distribution for pie chart
-  const priorityDist = (['critical', 'high', 'medium', 'low'] as CasePriority[]).map((p) => ({
-    name: p,
-    value: cases.filter((c) => c.priority === p).length,
-  })).filter((d) => d.value > 0);
+  const priorityDist = stats?.priority_distribution || [];
 
-  // Dynamic Trend Data Generation (Last 6 Months)
-  const trendData = React.useMemo(() => {
-    const months: { month: string, year: number, monthIndex: number, cases: number, closed: number }[] = [];
-    const now = new Date();
-    // Generate last 6 months labels
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({
-        month: d.toLocaleString('en-US', { month: 'short' }),
-        year: d.getFullYear(),
-        monthIndex: d.getMonth(),
-        cases: 0,
-        closed: 0,
-      });
-    }
-
-    cases.forEach((c) => {
-      const d = new Date(c.created_at);
-      const m = months.find((month) => month.monthIndex === d.getMonth() && month.year === d.getFullYear());
-      if (m) {
-        m.cases += 1;
-        if (c.status === 'closed') {
-          m.closed += 1;
-        }
-      }
-    });
-
-    return months;
-  }, [cases]);
-
-  // Recent cases (last 5)
-  const recentCases = [...cases]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
+  const trendData = stats?.trend_data || [];
 
   return (
     <div>
@@ -166,7 +68,7 @@ export default function Dashboard() {
           <StatCard
             icon="🗂️"
             label="Total Cases"
-            value={isLoading ? '...' : total}
+            value={isLoading ? '...' : stats?.total_cases ?? 0}
             color="var(--teal)"
             colorMuted="var(--teal-muted)"
           />
@@ -174,8 +76,8 @@ export default function Dashboard() {
         <div className="col-12 col-sm-6 col-xl-3">
           <StatCard
             icon="🔴"
-            label="Critical Cases"
-            value={isLoading ? '...' : criticalCases}
+            label="Critical Findings"
+            value={isLoading ? '...' : stats?.critical_findings ?? 0}
             color="var(--danger)"
             colorMuted="var(--danger-muted)"
           />
@@ -184,7 +86,7 @@ export default function Dashboard() {
           <StatCard
             icon="⚡"
             label="Active Investigations"
-            value={isLoading ? '...' : activeCases}
+            value={isLoading ? '...' : stats?.active_cases ?? 0}
             color="var(--orange)"
             colorMuted="var(--orange-muted)"
           />
@@ -193,66 +95,53 @@ export default function Dashboard() {
           <StatCard
             icon="✅"
             label="Closed Cases"
-            value={isLoading ? '...' : closedCases}
+            value={isLoading ? '...' : stats?.closed_cases ?? 0}
             color="var(--success)"
             colorMuted="var(--success-muted)"
           />
         </div>
       </div>
 
-      {/* Risk Stat Cards */}
-      <h6 style={{ fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 16px 0', fontSize: 14 }}>
-        🛡️ Risk Assessments
-      </h6>
       <div className="row g-3 mb-4">
-        <div className="col-12 col-sm-6 col-xl-3">
+        <div className="col-12 col-sm-6 col-xl-4">
+          <StatCard
+            icon="🔬"
+            label="Total Evidence Analyzed"
+            value={isLoading ? '...' : stats?.total_evidence ?? 0}
+            color="var(--teal)"
+            colorMuted="var(--teal-muted)"
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-xl-4">
+          <StatCard
+            icon="🕸️"
+            label="Multi-Source Correlations"
+            value={isLoading ? '...' : stats?.total_correlations ?? 0}
+            color="var(--purple)"
+            colorMuted="rgba(168, 85, 247, 0.15)"
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-xl-4">
           <StatCard
             icon="🚨"
-            label="Critical Risks"
-            value={isLoadingRisks ? '...' : criticalRisks}
+            label="Critical Attack Chains"
+            value={isLoading ? '...' : stats?.critical_correlations ?? 0}
             color="var(--danger)"
             colorMuted="var(--danger-muted)"
           />
         </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <StatCard
-            icon="⚠️"
-            label="High Risks"
-            value={isLoadingRisks ? '...' : highRisks}
-            color="var(--orange)"
-            colorMuted="var(--orange-muted)"
-          />
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <StatCard
-            icon="🟡"
-            label="Medium Risks"
-            value={isLoadingRisks ? '...' : mediumRisks}
-            color="var(--warning)"
-            colorMuted="var(--warning-muted)"
-          />
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <StatCard
-            icon="🟢"
-            label="Low Risks"
-            value={isLoadingRisks ? '...' : lowRisks}
-            color="var(--success)"
-            colorMuted="var(--success-muted)"
-          />
-        </div>
       </div>
 
-      {/* Reports Stat */}
+      {/* Reports & Findings Stat */}
       <h6 style={{ fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 16px 0', fontSize: 14 }}>
-        📄 Reports
+        📄 Activity Overview
       </h6>
       <div className="row g-3 mb-4">
         <div className="col-12 col-sm-6 col-xl-3">
           <StatCard
             icon="📄"
             label="Reports Generated"
-            value={isLoadingReports ? '...' : totalReports}
+            value={isLoading ? '...' : stats?.reports_generated ?? 0}
             color="var(--blue)"
             colorMuted="rgba(59, 130, 246, 0.1)"
           />
@@ -260,10 +149,19 @@ export default function Dashboard() {
         <div className="col-12 col-sm-6 col-xl-3">
           <StatCard
             icon="🧠"
-            label="Memory Analyses Completed"
-            value={isLoadingMemory ? '...' : totalMemoryAnalyses}
+            label="Total Findings"
+            value={isLoading ? '...' : stats?.total_findings ?? 0}
             color="var(--teal)"
             colorMuted="rgba(45, 212, 191, 0.1)"
+          />
+        </div>
+        <div className="col-12 col-sm-6 col-xl-3">
+          <StatCard
+            icon="🔬"
+            label="Total Evidence"
+            value={isLoading ? '...' : stats?.total_evidence ?? 0}
+            color="var(--orange)"
+            colorMuted="rgba(249, 115, 22, 0.1)"
           />
         </div>
       </div>

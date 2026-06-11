@@ -22,15 +22,19 @@ async def _generate_report_task(report_id: str, case_id: str, config: dict, inve
         evidence = db.table("evidence").select("*").eq("case_id", case_id).execute().data or []
         findings = db.table("findings").select("*").eq("case_id", case_id).order("severity").execute().data or []
         timeline = db.table("timeline_events").select("*").eq("case_id", case_id).order("event_time").execute().data or []
-        risk_result = db.table("risk_assessments").select("*").eq("case_id", case_id).single().execute()
-        risk = risk_result.data if risk_result.data else None
-        investigator = db.table("users").select("*").eq("id", investigator_id).single().execute().data or {}
+        risk_result = db.table("risk_assessments").select("*").eq("case_id", case_id).execute()
+        risk = risk_result.data[0] if risk_result.data else None
+        investigator_result = db.table("users").select("*").eq("id", investigator_id).execute()
+        investigator = investigator_result.data[0] if investigator_result.data else {}
         
         memory_results = []
         evidence_ids = [e["id"] for e in evidence]
         if evidence_ids:
             mem_res = db.table("memory_analysis_results").select("*").in_("evidence_id", evidence_ids).execute()
             memory_results = mem_res.data or []
+            
+        correlations_res = db.table("correlations").select("*").eq("case_id", case_id).execute()
+        correlations = correlations_res.data or []
 
         # Generate PDF
         pdf_bytes = generate_case_report(
@@ -42,21 +46,24 @@ async def _generate_report_task(report_id: str, case_id: str, config: dict, inve
             investigator=investigator,
             config=config,
             memory_results=memory_results,
+            correlations=correlations,
         )
 
-        # Upload to storage
+        # Upload to storage — use a consistent bucket and persist it to the record
+        upload_bucket = settings.storage_bucket or "forensic_uploads"
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         storage_path = f"cases/{case_id}/reports/{report_id}_{timestamp}.pdf"
-        db.storage.from_(settings.storage_bucket).upload(
+        db.storage.from_(upload_bucket).upload(
             path=storage_path,
             file=pdf_bytes,
             file_options={"content-type": "application/pdf"},
         )
 
-        # Update report record
+        # Update report record — persist the exact bucket used so download matches
         db.table("reports").update({
             "status": "ready",
             "storage_path": storage_path,
+            "storage_bucket": upload_bucket,
             "file_size": len(pdf_bytes),
             "generated_at": datetime.utcnow().isoformat(),
         }).eq("id", report_id).execute()

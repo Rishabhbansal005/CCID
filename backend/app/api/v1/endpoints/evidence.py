@@ -129,7 +129,22 @@ async def upload_evidence(
         if not result.data:
             raise HTTPException(status_code=500, detail="Failed to save evidence record")
 
-        return parse_json_fields(result.data[0])
+        ev_record = result.data[0]
+
+        # Auto-generate timeline event
+        timeline_payload = {
+            "case_id": case_id,
+            "evidence_id": ev_record["id"],
+            "event_time": datetime.utcnow().isoformat(),
+            "title": f"Evidence Uploaded: {safe_filename}",
+            "description": f"File {file.filename} ({len(content)} bytes) uploaded.",
+            "event_type": "evidence",
+            "importance": "normal",
+            "created_by": current_user.id
+        }
+        db.table("timeline_events").insert(timeline_payload).execute()
+
+        return parse_json_fields(ev_record)
 
     except HTTPException:
         raise
@@ -368,7 +383,22 @@ async def verify_evidence_integrity(
         if not result.data:
             raise HTTPException(status_code=500, detail="Failed to update verification status")
 
-        return parse_json_fields(result.data[0])
+        ev_record = result.data[0]
+
+        # Auto-generate timeline event
+        timeline_payload = {
+            "case_id": ev_record["case_id"],
+            "evidence_id": evidence_id,
+            "event_time": datetime.utcnow().isoformat(),
+            "title": f"Integrity Verified: {ev.data['original_file_name']}",
+            "description": f"Hashes verified. MD5: {hashes['md5']}",
+            "event_type": "integrity",
+            "importance": "high",
+            "created_by": current_user.id
+        }
+        db.table("timeline_events").insert(timeline_payload).execute()
+
+        return parse_json_fields(ev_record)
 
     except HTTPException:
         raise

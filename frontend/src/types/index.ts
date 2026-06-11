@@ -142,6 +142,8 @@ export interface Evidence {
   updated_at: string;
 }
 
+export interface EvidenceUpdate extends Partial<Omit<Evidence, 'id' | 'case_id' | 'created_at' | 'updated_at'>> {}
+
 // ============================================================
 // Finding Types
 // ============================================================
@@ -171,6 +173,7 @@ export interface Finding {
   tags: string[];
   ioc_indicators: IOCIndicator[];
   recommendations?: string;
+  analysis_source?: string;
   created_by: string;
   reviewed_by?: string;
   reviewed_at?: string;
@@ -192,9 +195,15 @@ export type EventType =
   | 'authentication'
   | 'email'
   | 'web'
+  | 'evidence'
+  | 'integrity'
+  | 'memory_analysis'
+  | 'network_analysis'
+  | 'finding'
+  | 'risk_assessment'
   | 'other';
 
-export type EventImportance = 'low' | 'normal' | 'high' | 'critical';
+export type EventImportance = 'informational' | 'low' | 'normal' | 'medium' | 'high' | 'critical';
 
 export interface TimelineEvent {
   id: string;
@@ -282,7 +291,17 @@ export interface DashboardStats {
   total_findings: number;
   critical_findings: number;
   reports_generated: number;
+  total_correlations: number;
+  critical_correlations: number;
   recent_activity: ActivityItem[];
+  priority_distribution: { name: string; value: number }[];
+  trend_data: Array<{
+    month: string;
+    year: number;
+    monthIndex: number;
+    cases: number;
+    closed: number;
+  }>;
 }
 
 export interface ActivityItem {
@@ -311,6 +330,8 @@ export interface IPConversation {
 export interface DNSQuery {
   query_name: string;
   query_type: string;
+  query?: string;
+  type?: string;
   response_code?: string;
   answers?: string[];
 }
@@ -320,6 +341,7 @@ export interface SuspiciousIndicator {
   value: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   description: string;
+  reason?: string;
 }
 
 // ============================================================
@@ -384,6 +406,35 @@ export interface NetworkAnalysisResult {
   updated_at: string;
 }
 
+export interface BrowserAnalysisResult {
+  id: string;
+  evidence_id: string;
+  analysis_status: 'pending' | 'analyzing' | 'completed' | 'failed';
+  browser_type?: string;
+  history_entries: any[];
+  downloads: any[];
+  cookies: any[];
+  bookmarks: any[];
+  suspicious_urls: any[];
+  search_terms: any[];
+  analysis_summary: Record<string, any>;
+  error_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UsbAnalysisResult {
+  id: string;
+  evidence_id: string;
+  analysis_status: 'pending' | 'analyzing' | 'completed' | 'failed';
+  connected_devices: any[];
+  suspicious_devices: any[];
+  analysis_summary: Record<string, any>;
+  error_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================================
 // API Response Types
 // ============================================================
@@ -417,4 +468,45 @@ export interface SelectOption {
 export interface BreadcrumbItem {
   label: string;
   path?: string;
+}
+
+// ============================================================
+// Phase 5 Types: Correlations & Attack Chains
+// ============================================================
+
+export type CorrelationSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface Correlation {
+  id: string;
+  case_id: string;
+  correlation_type: string;
+  ioc: string;
+  ioc_type: string;
+  confidence_score: number;
+  correlation_severity: CorrelationSeverity;
+  related_sources: string[];
+  related_evidence: string[];
+  related_findings: string[];
+  enrichment_data: Record<string, any>;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AttackChain {
+  id: string;
+  case_id: string;
+  title: string;
+  description?: string;
+  severity: CorrelationSeverity;
+  nodes: any[];
+  edges: any[];
+  correlations: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GraphData {
+  nodes: any[];
+  edges: any[];
 }

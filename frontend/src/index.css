@@ -712,10 +712,15 @@ a:hover {
    Tables
    ============================================================ */
 .table {
+  background-color: transparent !important;
+  --bs-table-bg: transparent !important;
+  --bs-table-striped-bg: transparent !important;
+  --bs-table-hover-bg: rgba(255, 255, 255, 0.05) !important;
   color: var(--text-primary) !important;
   font-size: 13px !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .table th {
@@ -724,7 +729,7 @@ a:hover {
   text-transform: uppercase !important;
   letter-spacing: 0.1em !important;
   color: var(--text-muted) !important;
-  background: transparent !important;
+  background-color: transparent !important;
   border-bottom: 1px solid var(--border-subtle) !important;
   padding: 10px 12px !important;
   white-space: nowrap;
@@ -735,14 +740,20 @@ a:hover {
   border-bottom: 1px solid var(--border-subtle) !important;
   vertical-align: middle !important;
   color: var(--text-secondary) !important;
+  background-color: transparent !important;
+}
+
+.table tbody {
+  background-color: transparent !important;
 }
 
 .table tbody tr {
+  background-color: transparent !important;
   transition: var(--transition);
 }
 
 .table tbody tr:hover td {
-  background: rgba(0, 212, 255, 0.03) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
   color: var(--text-primary) !important;
 }
 

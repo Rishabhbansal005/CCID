@@ -18,7 +18,6 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/timeline', icon: '📅', label: 'Timeline', section: 'ANALYSIS' },
   { path: '/risk', icon: '🛡️', label: 'Risk Assessment', section: 'ANALYSIS' },
   { path: '/reports', icon: '📄', label: 'Reports', section: 'REPORTING' },
-  { path: '/forensics', icon: '🔌', label: 'Forensic Tools', section: 'TOOLS' },
 ];
 
 interface SidebarProps {

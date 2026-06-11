@@ -59,7 +59,7 @@ async def run_network_analysis_task(evidence_id: str, case_id: str, download_url
             "title": "Network Analysis Completed",
             "description": f"Extracted {len(results['conversations'])} conversations and {len(results['dns_queries'])} DNS queries.",
             "event_time": datetime.utcnow().isoformat(),
-            "event_type": "system",
+            "event_type": "network_analysis",
             "importance": "normal",
             "created_by": user_id
         }).execute()
@@ -74,6 +74,8 @@ async def run_network_analysis_task(evidence_id: str, case_id: str, download_url
                     "description": f"Automated network analysis detected suspicious activity. Reason: {ind['reason']}",
                     "severity": "high",
                     "status": "open",
+                    "category": "network",
+                    "analysis_source": "Network Analysis",
                     "created_by": user_id,
                     "ioc_indicators": [{"type": ind["type"], "value": ind["value"], "confidence": 90}]
                 }).execute()
@@ -89,6 +91,13 @@ async def run_network_analysis_task(evidence_id: str, case_id: str, download_url
                 "importance": "high",
                 "created_by": user_id
             }).execute()
+
+        # Trigger correlation engine which will also update risk
+        from app.services.correlation_engine import generate_correlations_for_case
+        generate_correlations_for_case(case_id, user_id)
+        
+        # Mark evidence as analyzed
+        db.table("evidence").update({"processing_status": "analyzed"}).eq("id", evidence_id).execute()
 
         logger.info(f"Network analysis completed for {evidence_id}")
 
@@ -140,7 +149,7 @@ async def start_network_analysis(
         "title": "Network Analysis Started",
         "description": "Background task initiated to parse PCAP evidence using tshark.",
         "event_time": datetime.utcnow().isoformat(),
-        "event_type": "system",
+        "event_type": "network_analysis",
         "importance": "normal",
         "created_by": current_user.id
     }).execute()

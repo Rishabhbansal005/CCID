@@ -10,7 +10,6 @@ const ROUTE_LABELS: Record<string, string> = {
   '/timeline': 'Timeline',
   '/risk': 'Risk Assessment',
   '/reports': 'Reports',
-  '/forensics': 'Forensic Tools',
 };
 
 interface TopbarProps {
@@ -101,10 +100,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
           </div>
         )}
 
-        {/* Notifications (placeholder) */}
-        <button className="topbar-icon-btn" title="Notifications">
-          🔔
-        </button>
+
       </div>
     </header>
   );
