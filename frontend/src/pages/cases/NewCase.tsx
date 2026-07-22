@@ -5,24 +5,24 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import type { CasePriority, CaseCategory } from '@/types';
 
-const PRIORITIES: { value: CasePriority; label: string; color: string }[] = [
-  { value: 'low', label: '🟢 Low', color: 'var(--success)' },
-  { value: 'medium', label: '🟡 Medium', color: 'var(--warning)' },
-  { value: 'high', label: '🟠 High', color: 'var(--orange)' },
-  { value: 'critical', label: '🔴 Critical', color: 'var(--danger)' },
+const PRIORITIES: { value: CasePriority; label: string; color: string; desc: string }[] = [
+  { value: 'low',      label: 'Low',      color: '#34d399', desc: 'Routine investigation' },
+  { value: 'medium',   label: 'Medium',   color: '#fbbf24', desc: 'Elevated concern' },
+  { value: 'high',     label: 'High',     color: '#fb923c', desc: 'Significant threat' },
+  { value: 'critical', label: 'Critical', color: '#f43f5e', desc: 'Immediate response required' },
 ];
 
 const CATEGORIES: { value: CaseCategory; label: string }[] = [
-  { value: 'cybercrime', label: 'Cybercrime (General)' },
-  { value: 'data_breach', label: 'Data Breach' },
-  { value: 'malware', label: 'Malware Infection' },
-  { value: 'ransomware', label: 'Ransomware' },
-  { value: 'phishing', label: 'Phishing' },
-  { value: 'insider_threat', label: 'Insider Threat' },
-  { value: 'fraud', label: 'Online Fraud' },
-  { value: 'ddos', label: 'DDoS Attack' },
-  { value: 'espionage', label: 'Cyber Espionage' },
-  { value: 'other', label: 'Other' },
+  { value: 'cybercrime',      label: 'Cybercrime (General)' },
+  { value: 'data_breach',     label: 'Data Breach' },
+  { value: 'malware',         label: 'Malware Infection' },
+  { value: 'ransomware',      label: 'Ransomware' },
+  { value: 'phishing',        label: 'Phishing' },
+  { value: 'insider_threat',  label: 'Insider Threat' },
+  { value: 'fraud',           label: 'Online Fraud' },
+  { value: 'ddos',            label: 'DDoS Attack' },
+  { value: 'espionage',       label: 'Cyber Espionage' },
+  { value: 'other',           label: 'Other' },
 ];
 
 export default function NewCase() {
@@ -75,9 +75,7 @@ export default function NewCase() {
     },
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
   };
@@ -97,22 +95,17 @@ export default function NewCase() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!form.title.trim()) {
-      setError('Case title is required.');
-      return;
-    }
+    if (!form.title.trim()) { setError('Case title is required.'); return; }
     mutation.mutate(form);
   };
 
   return (
-    <div style={{ maxWidth: 720 }}>
+    <div style={{ maxWidth: 740 }} className="animate-in">
       {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-header-title">New Investigation Case</h1>
-          <p className="page-header-subtitle">
-            Open a new case to begin tracking an investigation
-          </p>
+          <p className="page-header-subtitle">Open a new case to begin tracking an investigation</p>
         </div>
         <button className="btn btn-outline-secondary" onClick={() => navigate('/cases')}>
           Cancel
@@ -120,30 +113,35 @@ export default function NewCase() {
       </div>
 
       {error && (
-        <div className="alert alert-danger mb-4">⚠️ {error}</div>
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          padding: '10px 14px',
+          background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)',
+          borderRadius: 8, marginBottom: 20, fontSize: 13, color: '#fb7185',
+        }}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16" style={{ flexShrink: 0, marginTop: 1 }}>
+            <circle cx="8" cy="8" r="6.5" /><path d="M8 5v3M8 10h.01" strokeLinecap="round" />
+          </svg>
+          {error}
+        </div>
       )}
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="card">
+        {/* ── Case Information ─────────────── */}
+        <div className="card mb-3">
           <div className="card-header">
-            <h6 style={{ fontWeight: 700, margin: 0, fontSize: 14 }}>Case Information</h6>
+            <span className="card-title">Case Information</span>
           </div>
           <div className="card-body">
             {/* Title */}
             <div className="mb-4">
               <label htmlFor="case-title" className="form-label">
-                Case Title <span style={{ color: 'var(--danger)' }}>*</span>
+                Case Title <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
-                id="case-title"
-                name="title"
-                type="text"
-                className="form-control"
-                placeholder="e.g., Corporate Network Intrusion – Acme Corp"
-                value={form.title}
-                onChange={handleChange}
-                required
-                autoFocus
+                id="case-title" name="title" type="text" className="form-control"
+                placeholder="e.g. Corporate Network Intrusion – Acme Corp"
+                value={form.title} onChange={handleChange} required autoFocus
               />
             </div>
 
@@ -151,96 +149,96 @@ export default function NewCase() {
             <div className="mb-4">
               <label htmlFor="case-description" className="form-label">Description</label>
               <textarea
-                id="case-description"
-                name="description"
-                className="form-control"
-                placeholder="Brief description of the incident, initial findings, and scope..."
-                rows={4}
-                value={form.description}
-                onChange={handleChange}
+                id="case-description" name="description" className="form-control"
+                placeholder="Brief description of the incident, initial findings, and scope…"
+                rows={4} value={form.description} onChange={handleChange}
               />
             </div>
 
-            {/* Priority & Category */}
-            <div className="row g-3 mb-4">
-              <div className="col-6">
-                <label htmlFor="case-priority" className="form-label">Priority</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {PRIORITIES.map((p) => (
+            {/* Priority — card-style selector */}
+            <div className="mb-4">
+              <label className="form-label">Priority</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                {PRIORITIES.map((p) => {
+                  const isSelected = form.priority === p.value;
+                  return (
                     <button
                       key={p.value}
                       type="button"
                       id={`priority-${p.value}`}
                       onClick={() => setForm((f) => ({ ...f, priority: p.value }))}
                       style={{
-                        padding: '7px 14px',
+                        padding: '10px 12px',
                         borderRadius: 8,
-                        border: `1px solid ${form.priority === p.value ? p.color : 'var(--border-color)'}`,
-                        background: form.priority === p.value ? `${p.color}22` : 'var(--bg-input)',
-                        color: form.priority === p.value ? p.color : 'var(--text-secondary)',
+                        border: `1px solid ${isSelected ? p.color : 'rgba(255,255,255,0.08)'}`,
+                        background: isSelected ? `${p.color}18` : 'rgba(255,255,255,0.02)',
+                        color: isSelected ? p.color : '#64748b',
                         cursor: 'pointer',
                         fontSize: 12,
                         fontWeight: 600,
-                        transition: 'var(--transition)',
+                        textAlign: 'left',
+                        transition: 'all 0.15s',
+                        fontFamily: 'monospace',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
                       }}
                     >
-                      {p.label}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{
+                          width: 7, height: 7, borderRadius: '50%',
+                          background: isSelected ? p.color : 'rgba(255,255,255,0.15)',
+                          display: 'inline-block', flexShrink: 0,
+                        }} />
+                        {p.label}
+                      </div>
                     </button>
-                  ))}
-                </div>
-              </div>
-              <div className="col-6">
-                <label htmlFor="case-category" className="form-label">Category</label>
-                <select
-                  id="case-category"
-                  name="category"
-                  className="form-select"
-                  value={form.category ?? ''}
-                  onChange={handleChange}
-                >
-                  <option value="">Select category...</option>
-                  {CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Incident Date & Jurisdiction */}
+            {/* Category */}
+            <div className="mb-4">
+              <label htmlFor="case-category" className="form-label">Category</label>
+              <select
+                id="case-category" name="category" className="form-select"
+                value={form.category ?? ''} onChange={handleChange}
+              >
+                <option value="">Select incident category…</option>
+                {CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Incident Date + Jurisdiction */}
             <div className="row g-3 mb-4">
               <div className="col-6">
                 <label htmlFor="case-incident-date" className="form-label">Incident Date</label>
                 <input
-                  id="case-incident-date"
-                  name="incident_date"
-                  type="datetime-local"
+                  id="case-incident-date" name="incident_date" type="datetime-local"
                   className="form-control"
-                  value={form.incident_date as string}
-                  onChange={handleChange}
+                  value={form.incident_date as string} onChange={handleChange}
                 />
               </div>
               <div className="col-6">
                 <label htmlFor="case-jurisdiction" className="form-label">Jurisdiction</label>
                 <input
-                  id="case-jurisdiction"
-                  name="jurisdiction"
-                  type="text"
+                  id="case-jurisdiction" name="jurisdiction" type="text"
                   className="form-control"
-                  placeholder="e.g., Federal, State, International"
-                  value={form.jurisdiction}
-                  onChange={handleChange}
+                  placeholder="e.g. Federal, State, International"
+                  value={form.jurisdiction} onChange={handleChange}
                 />
               </div>
             </div>
 
             {/* Tags */}
-            <div className="mb-2">
+            <div>
               <label className="form-label">Tags</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Add tag and press Enter..."
+                  type="text" className="form-control"
+                  placeholder="Type a tag and press Enter…"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
@@ -255,22 +253,16 @@ export default function NewCase() {
                     <span
                       key={tag}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: 'var(--teal-muted)',
-                        color: 'var(--teal)',
-                        padding: '4px 10px',
-                        borderRadius: 20,
-                        fontSize: 12,
-                        border: '1px solid rgba(0,212,255,0.2)',
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: 'rgba(99,102,241,0.10)', color: '#818cf8',
+                        padding: '4px 10px', borderRadius: 4, fontSize: 11,
+                        border: '1px solid rgba(99,102,241,0.2)', fontFamily: 'monospace',
                       }}
                     >
                       {tag}
                       <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: 14, padding: 0, lineHeight: 1 }}
+                        type="button" onClick={() => removeTag(tag)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: 14, padding: 0, lineHeight: 1 }}
                       >
                         ×
                       </button>
@@ -283,28 +275,18 @@ export default function NewCase() {
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 12, marginTop: 20, justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={() => navigate('/cases')}
-          >
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button type="button" className="btn btn-outline-secondary" onClick={() => navigate('/cases')}>
             Cancel
           </button>
           <button
-            id="btn-create-case"
-            type="submit"
-            className="btn btn-primary btn-lg"
+            id="btn-create-case" type="submit" className="btn btn-primary"
             disabled={mutation.isPending}
+            style={{ minWidth: 130 }}
           >
             {mutation.isPending ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" />
-                Creating...
-              </>
-            ) : (
-              '🗂️ Create Case'
-            )}
+              <><span className="spinner-border spinner-border-sm" role="status" /> Creating…</>
+            ) : 'Create Case'}
           </button>
         </div>
       </form>

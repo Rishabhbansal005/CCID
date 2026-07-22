@@ -4,16 +4,14 @@ import type { CaseStatus, CasePriority, FindingSeverity, RiskLevel, ProcessingSt
 // ============================================================
 // Status Badge
 // ============================================================
-interface StatusBadgeProps {
-  status: CaseStatus;
-}
+interface StatusBadgeProps { status: CaseStatus; }
 export function StatusBadge({ status }: StatusBadgeProps) {
   const labels: Record<CaseStatus, string> = {
-    open: 'Open',
-    active: 'Active',
-    pending_review: 'Review',
-    closed: 'Closed',
-    archived: 'Archived',
+    open:           'Open',
+    active:         'Active',
+    pending_review: 'In Review',
+    closed:         'Closed',
+    archived:       'Archived',
   };
   return (
     <span className={`badge badge-status-${status}`}>
@@ -25,19 +23,11 @@ export function StatusBadge({ status }: StatusBadgeProps) {
 // ============================================================
 // Priority Badge
 // ============================================================
-interface PriorityBadgeProps {
-  priority: CasePriority;
-}
+interface PriorityBadgeProps { priority: CasePriority; }
 export function PriorityBadge({ priority }: PriorityBadgeProps) {
-  const icons: Record<CasePriority, string> = {
-    critical: '🔴',
-    high: '🟠',
-    medium: '🟡',
-    low: '🟢',
-  };
   return (
     <span className={`badge badge-priority-${priority}`}>
-      {icons[priority]} {priority}
+      {priority}
     </span>
   );
 }
@@ -45,9 +35,7 @@ export function PriorityBadge({ priority }: PriorityBadgeProps) {
 // ============================================================
 // Severity Badge
 // ============================================================
-interface SeverityBadgeProps {
-  severity: FindingSeverity;
-}
+interface SeverityBadgeProps { severity: FindingSeverity; }
 export function SeverityBadge({ severity }: SeverityBadgeProps) {
   return (
     <span className={`badge badge-severity-${severity}`}>
@@ -59,10 +47,7 @@ export function SeverityBadge({ severity }: SeverityBadgeProps) {
 // ============================================================
 // Risk Level Badge
 // ============================================================
-interface RiskBadgeProps {
-  level: RiskLevel;
-  score?: number;
-}
+interface RiskBadgeProps { level: RiskLevel; score?: number; }
 export function RiskBadge({ level, score }: RiskBadgeProps) {
   return (
     <span className={`badge badge-risk-${level}`}>
@@ -74,16 +59,14 @@ export function RiskBadge({ level, score }: RiskBadgeProps) {
 // ============================================================
 // Processing Status Badge
 // ============================================================
-interface ProcessingBadgeProps {
-  status: ProcessingStatus;
-}
+interface ProcessingBadgeProps { status: ProcessingStatus; }
 export function ProcessingBadge({ status }: ProcessingBadgeProps) {
   const configs: Record<ProcessingStatus, { label: string; style: React.CSSProperties }> = {
-    pending: { label: 'Pending', style: { background: 'var(--warning-muted)', color: 'var(--warning)', border: '1px solid rgba(245, 158, 11, 0.3)' } },
-    processing: { label: 'Processing...', style: { background: 'var(--info-muted)', color: 'var(--info)', border: '1px solid rgba(59, 130, 246, 0.3)' } },
-    analyzed: { label: 'Analyzed', style: { background: 'var(--success-muted)', color: 'var(--success)', border: '1px solid rgba(16, 185, 129, 0.3)' } },
-    error: { label: 'Error', style: { background: 'var(--danger-muted)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.3)' } },
-    skipped: { label: 'Skipped', style: { background: 'rgba(100,116,139,0.15)', color: 'var(--text-muted)' } },
+    pending:    { label: 'Pending',    style: { background: 'var(--status-warn-bg)', color: 'var(--status-warn)', border: '1px solid rgba(245,158,11,0.3)' } },
+    processing: { label: 'Processing', style: { background: 'var(--status-info-bg)', color: 'var(--status-info)', border: '1px solid rgba(59,130,246,0.3)' } },
+    analyzed:   { label: 'Analyzed',   style: { background: 'var(--status-ok-bg)',   color: 'var(--status-ok)',   border: '1px solid rgba(34,197,94,0.3)' } },
+    error:      { label: 'Error',      style: { background: 'var(--status-crit-bg)', color: 'var(--status-crit)', border: '1px solid rgba(239,68,68,0.3)' } },
+    skipped:    { label: 'Skipped',    style: { background: 'rgba(139,148,158,0.1)', color: 'var(--text-muted)' } },
   };
   const { label, style } = configs[status] ?? configs.pending;
   return <span className="badge" style={style}>{label}</span>;
