@@ -25,12 +25,7 @@ async def list_cases(
         db = get_supabase_admin()
         query = db.table("cases").select("*, assignee:assigned_to(id, full_name, email, role)")
 
-        # Apply filters
-        if current_user.role not in ("admin",):
-            # Non-admins only see cases they created or are assigned to
-            query = db.table("cases").select(
-                "*, assignee:assigned_to(id, full_name, email, role)"
-            ).or_(f"created_by.eq.{current_user.id},assigned_to.eq.{current_user.id}")
+        # Removed role filters to allow full collaboration
 
         if status:
             query = query.eq("status", status)
@@ -96,11 +91,8 @@ async def get_case(
             raise HTTPException(status_code=404, detail="Case not found")
 
         case = result.data
-        # Check access
-        if current_user.role != "admin" and \
-           case.get("created_by") != current_user.id and \
-           case.get("assigned_to") != current_user.id:
-            raise HTTPException(status_code=403, detail="Access denied")
+        # Removed access check to allow full collaboration
+
 
         return case
     except HTTPException:
@@ -125,10 +117,8 @@ async def update_case(
             raise HTTPException(status_code=404, detail="Case not found")
 
         case = existing.data
-        if current_user.role != "admin" and \
-           case.get("created_by") != current_user.id and \
-           case.get("assigned_to") != current_user.id:
-            raise HTTPException(status_code=403, detail="Access denied")
+        # Removed access check to allow full collaboration
+
 
         payload = update_data.model_dump(exclude_none=True)
         result = db.table("cases").update(payload).eq("id", case_id).execute()
@@ -149,8 +139,8 @@ async def delete_case(
     current_user: CurrentUser = Depends(require_investigator),
 ):
     """Delete a case (admin only)."""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required to delete cases")
+    # Removed admin check for deletion to allow full collaboration
+
 
     try:
         db = get_supabase_admin()
