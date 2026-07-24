@@ -201,7 +201,8 @@ async def update_evidence(
     """Update evidence metadata."""
     try:
         db = get_supabase_admin()
-        payload = update_data.model_dump(exclude_none=True)
+        payload = update_data.model_dump(exclude_unset=True)
+        print("DEBUG payload for PUT:", payload)
         result = db.table("evidence").update(payload).eq("id", evidence_id).execute()
         if not result.data:
             raise HTTPException(status_code=404, detail="Evidence not found")

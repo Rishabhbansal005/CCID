@@ -15,87 +15,87 @@ import { formatDistanceToNow } from 'date-fns';
 
 const PRIORITY_COLORS: Record<string, string> = {
   critical: '#f43f5e',
-  high:     '#fb923c',
-  medium:   '#fbbf24',
-  low:      '#34d399',
+  high: '#fb923c',
+  medium: '#fbbf24',
+  low: '#34d399',
 };
 
 /* ─── SVG Icon set ─────────────────────────────────────────── */
 const I = {
   cases: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18">
-      <path d="M3 5h14v13H3z" strokeLinejoin="round"/>
-      <path d="M7 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/>
-      <path d="M7 10h6M7 14h4" strokeLinecap="round"/>
+      <path d="M3 5h14v13H3z" strokeLinejoin="round" />
+      <path d="M7 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
+      <path d="M7 10h6M7 14h4" strokeLinecap="round" />
     </svg>
   ),
   critical: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18">
-      <path d="M10 2L2 17h16L10 2z" strokeLinejoin="round"/>
-      <path d="M10 8v5M10 15h.01" strokeLinecap="round"/>
+      <path d="M10 2L2 17h16L10 2z" strokeLinejoin="round" />
+      <path d="M10 8v5M10 15h.01" strokeLinecap="round" />
     </svg>
   ),
   active: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18">
-      <circle cx="10" cy="10" r="7.5"/>
-      <path d="M10 6v4.5l3 1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="10" cy="10" r="7.5" />
+      <path d="M10 6v4.5l3 1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   closed: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18">
-      <circle cx="10" cy="10" r="7.5"/>
-      <path d="M7 10l2.5 2.5L13 8" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="10" cy="10" r="7.5" />
+      <path d="M7 10l2.5 2.5L13 8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   evidence: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18">
-      <circle cx="9" cy="9" r="5.5"/>
-      <path d="M13 13l4 4" strokeLinecap="round"/>
+      <circle cx="9" cy="9" r="5.5" />
+      <path d="M13 13l4 4" strokeLinecap="round" />
     </svg>
   ),
   correlation: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18">
-      <circle cx="5" cy="5" r="2.5"/>
-      <circle cx="15" cy="5" r="2.5"/>
-      <circle cx="10" cy="15" r="2.5"/>
-      <path d="M7 6L8.5 12.5M13 6L11.5 12.5M7.5 5.5h5"/>
+      <circle cx="5" cy="5" r="2.5" />
+      <circle cx="15" cy="5" r="2.5" />
+      <circle cx="10" cy="15" r="2.5" />
+      <path d="M7 6L8.5 12.5M13 6L11.5 12.5M7.5 5.5h5" />
     </svg>
   ),
   attack: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18">
-      <path d="M10 2l2 7h7l-5.5 4 2 7L10 16l-5.5 4 2-7L1 9h7z" strokeLinejoin="round"/>
+      <path d="M10 2l2 7h7l-5.5 4 2 7L10 16l-5.5 4 2-7L1 9h7z" strokeLinejoin="round" />
     </svg>
   ),
   report: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18">
-      <path d="M4 2h9l4 4v13H4V2z" strokeLinejoin="round"/>
-      <path d="M13 2v4h4"/>
-      <path d="M7 10h6M7 14h4" strokeLinecap="round"/>
+      <path d="M4 2h9l4 4v13H4V2z" strokeLinejoin="round" />
+      <path d="M13 2v4h4" />
+      <path d="M7 10h6M7 14h4" strokeLinecap="round" />
     </svg>
   ),
   newcase: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
-      <path d="M3 5h14v13H3z" strokeLinejoin="round"/>
-      <path d="M7 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/>
-      <path d="M10 9v6M7 12h6" strokeLinecap="round"/>
+      <path d="M3 5h14v13H3z" strokeLinejoin="round" />
+      <path d="M7 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
+      <path d="M10 9v6M7 12h6" strokeLinecap="round" />
     </svg>
   ),
   upload: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
-      <path d="M4 14v3h12v-3"/>
-      <path d="M10 3v10M7 6l3-3 3 3" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M4 14v3h12v-3" />
+      <path d="M10 3v10M7 6l3-3 3 3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   generate: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
-      <path d="M4 2h9l4 4v12H4V2z" strokeLinejoin="round"/>
-      <path d="M13 2v4h4"/>
-      <path d="M7 10h6M7 14h4" strokeLinecap="round"/>
+      <path d="M4 2h9l4 4v12H4V2z" strokeLinejoin="round" />
+      <path d="M13 2v4h4" />
+      <path d="M7 10h6M7 14h4" strokeLinecap="round" />
     </svg>
   ),
   plus: (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-      <path d="M8 3v10M3 8h10" strokeLinecap="round"/>
+      <path d="M8 3v10M3 8h10" strokeLinecap="round" />
     </svg>
   ),
 };
@@ -239,11 +239,11 @@ export default function Dashboard() {
                 <AreaChart data={trendData} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
                   <defs>
                     <linearGradient id="gNew" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
                       <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gClosed" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#22d3ee" stopOpacity={0.18} />
+                      <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.18} />
                       <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
                     </linearGradient>
                   </defs>
@@ -439,16 +439,16 @@ export default function Dashboard() {
 }
 
 const QUICK_ACTIONS = [
-  { icon: I.newcase,  label: 'New Case',        desc: 'Open a new investigation',        path: '/cases/new'   },
-  { icon: I.upload,  label: 'Upload Evidence',  desc: 'Attach files to a case',          path: '/evidence'    },
+  { icon: I.newcase, label: 'New Case', desc: 'Open a new investigation', path: '/cases/new' },
+  { icon: I.upload, label: 'Upload Evidence', desc: 'Attach files to a case', path: '/evidence' },
   { icon: I.generate, label: 'Generate Report', desc: 'Export a PDF investigation report', path: '/reports/new' },
 ];
 
 const SYS_STATUS = [
-  { label: 'Database',   ok: true  },
-  { label: 'Storage',    ok: true  },
+  { label: 'Database', ok: true },
+  { label: 'Storage', ok: true },
   { label: 'Volatility', ok: false },
-  { label: 'Wireshark',  ok: false },
+  { label: 'Wireshark', ok: false },
 ];
 
 function getTimeGreeting() {

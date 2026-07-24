@@ -20,6 +20,8 @@ export default function EvidenceDetail() {
   const [verifying, setVerifying] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fileUrlLoading, setFileUrlLoading] = useState(false);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
 
   const { data: ev, isLoading, error: queryError } = useQuery({
     queryKey: ['evidence', id],
@@ -139,6 +141,33 @@ export default function EvidenceDetail() {
     }
   };
 
+  const handleViewFile = async () => {
+    if (!ev) return;
+    setFileUrlLoading(true);
+    try {
+      const { signed_url } = await evidenceApi.getSignedUrl(ev.id, 300);
+      window.open(signed_url, '_blank', 'noopener,noreferrer');
+      // Also store it for inline preview of images
+      setFilePreviewUrl(signed_url);
+    } catch (err: any) {
+      alert('Could not generate download link. The file may have been deleted from storage.');
+    } finally {
+      setFileUrlLoading(false);
+    }
+  };
+
+  const imgExts = ['.jpg','.jpeg','.png','.gif','.webp','.svg','.bmp'];
+  const imgMimes = ['image/jpeg','image/png','image/gif','image/webp','image/svg+xml'];
+  const isImage = ev
+    ? (imgMimes.includes(ev.mime_type || '') ||
+       ev.evidence_type === 'screenshot' ||
+       imgExts.some(ext => ev.original_file_name.toLowerCase().endsWith(ext)))
+    : false;
+
+  const isPdf = ev
+    ? (ev.mime_type === 'application/pdf' || ev.original_file_name.toLowerCase().endsWith('.pdf'))
+    : false;
+
   if (isLoading) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
@@ -189,6 +218,25 @@ export default function EvidenceDetail() {
             </span>
           </div>
         </div>
+
+        <button
+          className="btn btn-primary"
+          onClick={handleViewFile}
+          disabled={fileUrlLoading}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
+        >
+          {fileUrlLoading ? (
+            <><span className="spinner-border spinner-border-sm" role="status" /> Opening...</>
+          ) : (
+            <>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+                <path d="M4 14v3h12v-3" strokeLinecap="round"/>
+                <path d="M10 3v10M7 6l3-3 3 3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              View / Download File
+            </>
+          )}
+        </button>
       </div>
 
       <div className="row g-4">
@@ -351,6 +399,45 @@ export default function EvidenceDetail() {
           </div>
         </div>
       </div>
+
+      {/* ── Inline File Preview ──────────────────────────────── */}
+      {filePreviewUrl && isImage && (
+        <div className="card mb-4 mt-4" style={{ overflow: 'hidden' }}>
+          <div className="card-header">
+            <span className="card-title">📎 File Preview — {ev.original_file_name}</span>
+            <a href={filePreviewUrl} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 12, color: '#818cf8', fontFamily: 'monospace' }}>
+              Open in new tab ↗
+            </a>
+          </div>
+          <div className="card-body" style={{ padding: 0 }}>
+            <img
+              src={filePreviewUrl}
+              alt={ev.original_file_name}
+              style={{ width: '100%', maxHeight: 600, objectFit: 'contain', background: '#0a0e1a', display: 'block' }}
+            />
+          </div>
+        </div>
+      )}
+
+      {filePreviewUrl && isPdf && (
+        <div className="card mb-4 mt-4" style={{ overflow: 'hidden' }}>
+          <div className="card-header">
+            <span className="card-title">📄 File Preview — {ev.original_file_name}</span>
+            <a href={filePreviewUrl} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 12, color: '#818cf8', fontFamily: 'monospace' }}>
+              Open in new tab ↗
+            </a>
+          </div>
+          <div className="card-body" style={{ padding: 0 }}>
+            <iframe
+              src={filePreviewUrl}
+              title={ev.original_file_name}
+              style={{ width: '100%', height: 600, border: 'none', background: '#fff' }}
+            />
+          </div>
+        </div>
+      )}
 
       {isNetworkCapture && (
         <div style={{ marginTop: 24 }}>

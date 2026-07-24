@@ -11,8 +11,9 @@ import CaseFindings from './CaseFindings';
 import CaseRiskTab from './tabs/CaseRiskTab';
 import CaseReportsTab from './tabs/CaseReportsTab';
 import CaseCorrelationsTab from './tabs/CaseCorrelationsTab';
+import CaseSuspectsTab from './tabs/CaseSuspectsTab';
 
-type ActiveTab = 'overview' | 'evidence' | 'findings' | 'correlations' | 'timeline' | 'risk' | 'reports';
+type ActiveTab = 'overview' | 'evidence' | 'suspects' | 'findings' | 'correlations' | 'timeline' | 'risk' | 'reports';
 
 export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -87,6 +88,7 @@ export default function CaseDetail() {
   const TABS: { key: ActiveTab; label: string; count?: number }[] = [
     { key: 'overview',     label: 'Overview' },
     { key: 'evidence',     label: 'Evidence',     count: stats?.evidence_count },
+    { key: 'suspects',     label: 'Suspects' },
     { key: 'findings',     label: 'Findings',     count: stats?.findings_count },
     { key: 'correlations', label: 'Correlations' },
     { key: 'timeline',     label: 'Timeline',     count: stats?.timeline_events },
@@ -353,6 +355,11 @@ export default function CaseDetail() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Suspects Tab */}
+          {activeTab === 'suspects' && (
+            <CaseSuspectsTab caseId={id!} />
           )}
 
           {/* Timeline Tab */}

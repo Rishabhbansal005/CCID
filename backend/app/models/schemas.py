@@ -126,6 +126,7 @@ class EvidenceCreate(EvidenceBase):
     hash_sha1: Optional[str] = None
     hash_sha256: Optional[str] = None
     hash_sha512: Optional[str] = None
+    suspect_id: Optional[str] = None
 
 
 class EvidenceUpdate(BaseModel):
@@ -137,11 +138,13 @@ class EvidenceUpdate(BaseModel):
     processing_status: Optional[str] = None
     tags: Optional[List[str]] = None
     is_verified: Optional[bool] = None
+    suspect_id: Optional[str] = None
 
 
 class EvidenceResponse(EvidenceBase, TimestampMixin):
     id: str
     case_id: str
+    suspect_id: Optional[str] = None
     evidence_number: str
     storage_path: str
     storage_bucket: str
@@ -401,6 +404,40 @@ class UsbAnalysisResult(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+# ============================================================
+# Suspect Schemas
+# ============================================================
+
+class SuspectBase(BaseModel):
+    name: str = Field(..., min_length=2)
+    aliases: List[str] = []
+    mobile_numbers: List[str] = []
+    email_ids: List[str] = []
+    ip_addresses: List[str] = []
+    criminal_history: Optional[str] = None
+    social_media_accounts: List[Dict[str, Any]] = []
+    notes: Optional[str] = None
+
+class SuspectCreate(SuspectBase):
+    case_id: str
+
+class SuspectUpdate(BaseModel):
+    name: Optional[str] = None
+    aliases: Optional[List[str]] = None
+    mobile_numbers: Optional[List[str]] = None
+    email_ids: Optional[List[str]] = None
+    ip_addresses: Optional[List[str]] = None
+    criminal_history: Optional[str] = None
+    social_media_accounts: Optional[List[Dict[str, Any]]] = None
+    notes: Optional[str] = None
+
+class SuspectResponse(SuspectBase, TimestampMixin):
+    id: str
+    case_id: str
+    created_by: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
 
 # ============================================================
 # Dashboard Stats

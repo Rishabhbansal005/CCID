@@ -43,26 +43,29 @@ async def get_current_user(
         except Exception:
             raise credentials_exception
             
-        # 2. Validate token securely via PostgREST
-        # PostgREST natively handles ES256/HS256 keys and will return 401 if the signature is invalid.
-        # This matches the EXACT auth flow used by the frontend modules.
+        # 2. Look up the user profile using the service role key (bypasses RLS).
+        # The anon role does not have SELECT on the users table, so we must use
+        # the service role key here. The JWT sub has already been decoded above
+        # to get the user_id, which is sufficient to identify the user.
         import httpx
         url = f"{settings.supabase_url}/rest/v1/users?id=eq.{user_id}&select=id,email,role,full_name"
+        service_key = settings.supabase_service_role_key
         headers = {
-            "apikey": settings.supabase_anon_key or settings.supabase_service_role_key,
-            "Authorization": f"Bearer {token}"
+            "apikey": service_key,
+            "Authorization": f"Bearer {service_key}",
         }
         with httpx.Client(timeout=5.0) as http_client:
             user_resp = http_client.get(url, headers=headers)
-            
+
         if user_resp.status_code != 200:
-            logger.warning(f"PostgREST auth validation failed: {user_resp.status_code} {user_resp.text}")
+            logger.warning(f"User lookup failed: {user_resp.status_code} {user_resp.text}")
             raise credentials_exception
-            
+
         data = user_resp.json()
         if not data:
+            logger.warning(f"No user profile found for id={user_id}")
             raise credentials_exception
-            
+
         user_data = data[0]
         return CurrentUser(
             id=user_data["id"],

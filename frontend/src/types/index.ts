@@ -111,6 +111,7 @@ export interface ChainOfCustodyEvent {
 export interface Evidence {
   id: string;
   case_id: string;
+  suspect_id?: string;
   evidence_number: string;
   file_name: string;
   original_file_name: string;
@@ -510,3 +511,37 @@ export interface GraphData {
   nodes: any[];
   edges: any[];
 }
+
+// ============================================================
+// Suspect Types
+// ============================================================
+
+export interface Suspect {
+  id: string;
+  case_id: string;
+  name: string;
+  aliases: string[];
+  mobile_numbers: string[];
+  email_ids: string[];
+  ip_addresses: string[];
+  criminal_history?: string;
+  social_media_accounts: Record<string, any>[];
+  notes?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SuspectCreate {
+  case_id: string;
+  name: string;
+  aliases?: string[];
+  mobile_numbers?: string[];
+  email_ids?: string[];
+  ip_addresses?: string[];
+  criminal_history?: string;
+  social_media_accounts?: Record<string, any>[];
+  notes?: string;
+}
+
+export interface SuspectUpdate extends Partial<Omit<SuspectCreate, 'case_id'>> {}

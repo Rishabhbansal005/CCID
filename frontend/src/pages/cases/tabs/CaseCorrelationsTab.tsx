@@ -12,9 +12,9 @@ const defaultGraphData: GraphData = { nodes: [], edges: [] };
 
 const severityConfig: Record<string, { bg: string; color: string; label: string }> = {
   critical: { bg: 'var(--danger-muted)', color: 'var(--danger)', label: 'Critical' },
-  high:     { bg: 'var(--orange-muted)', color: 'var(--orange)', label: 'High' },
-  medium:   { bg: 'var(--warning-muted)', color: 'var(--warning)', label: 'Medium' },
-  low:      { bg: 'var(--success-muted)', color: 'var(--success)', label: 'Low' },
+  high: { bg: 'var(--orange-muted)', color: 'var(--orange)', label: 'High' },
+  medium: { bg: 'var(--warning-muted)', color: 'var(--warning)', label: 'Medium' },
+  low: { bg: 'var(--success-muted)', color: 'var(--success)', label: 'Low' },
 };
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
