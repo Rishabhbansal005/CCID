@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -12,6 +12,167 @@ import type { Case } from '@/types';
 import dashboardApi from '@/api/dashboard';
 import casesApi from '@/api/cases';
 import { formatDistanceToNow } from 'date-fns';
+
+/* ─── Emergency Helplines Data ─────────────────────────────── */
+const HELPLINES = [
+  { service: 'National Police Helpline', number: '112' },
+  { service: 'Women Helpline', number: '1091' },
+  { service: 'Child Helpline (CHILDLINE)', number: '1098' },
+  { service: 'Senior Citizens Helpline', number: '14567' },
+  { service: 'Cyber Crime Helpline', number: '1930' },
+  { service: 'Anti-Human Trafficking', number: '1091 / 112' },
+  { service: 'Railway Police Helpline', number: '1512 / 182' },
+  { service: 'Traffic Helpline', number: 'City-wise' },
+];
+
+/* ─── Helpline Marquee Component ───────────────────────────── */
+function HelplineMarquee() {
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [paused, setPaused] = useState(false);
+
+  const handleCopy = (number: string, idx: number) => {
+    navigator.clipboard.writeText(number).then(() => {
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 1800);
+    });
+  };
+
+  const items = [...HELPLINES, ...HELPLINES];
+
+  return (
+    <>
+      <style>{`
+        @keyframes hl-scroll {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+        .hl-track {
+          animation: hl-scroll 44s linear infinite;
+        }
+        .hl-track.hl-paused {
+          animation-play-state: paused;
+        }
+      `}</style>
+
+      {/* Outer wrapper — fixed height, clips everything inside */}
+      <div
+        style={{
+          position: 'relative',       /* establishes stacking context     */
+          width: '100%',
+          height: 52,
+          marginBottom: 28,
+          flexShrink: 0,
+          overflow: 'hidden',         /* HARD clip — nothing escapes       */
+          borderRadius: 10,
+          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'linear-gradient(90deg,rgba(12,18,32,0.98),rgba(8,13,22,0.98))',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.35)',
+          display: 'flex',
+        }}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        {/* ── Red badge (static, in flow) */}
+        <div style={{
+          position: 'relative',
+          zIndex: 3,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '0 18px',
+          background: 'rgba(244,63,94,0.12)',
+          borderRight: '1px solid rgba(244,63,94,0.2)',
+          color: '#f43f5e',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.1em',
+          fontFamily: 'JetBrains Mono,monospace',
+          whiteSpace: 'nowrap',
+        }}>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
+            <path d="M10 2a8 8 0 100 16A8 8 0 0010 2z"/>
+            <path d="M10 8v4M10 14h.01" strokeLinecap="round"/>
+          </svg>
+          SOS HELPLINES
+        </div>
+
+        {/* ── Scroll viewport (fills remaining width) */}
+        <div style={{
+          flex: 1,
+          position: 'relative',
+          overflow: 'hidden',         /* clips the absolute track           */
+          /* fade edges */
+          maskImage: 'linear-gradient(to right,transparent,#000 24px,#000 calc(100% - 24px),transparent)',
+          WebkitMaskImage: 'linear-gradient(to right,transparent,#000 24px,#000 calc(100% - 24px),transparent)',
+        }}>
+          {/*
+            KEY FIX: position:absolute + left:0 means this div is
+            completely OUT OF NORMAL FLOW — it can never affect
+            the width of the page or any sibling element.
+          */}
+          <div
+            className={`hl-track${paused ? ' hl-paused' : ''}`}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              paddingLeft: 16,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {items.map((h, i) => (
+              <button
+                key={i}
+                onClick={() => handleCopy(h.number, i % HELPLINES.length)}
+                title={`Click to copy ${h.number}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '4px 12px',
+                  background: copiedIdx === i % HELPLINES.length
+                    ? 'rgba(34,211,238,0.1)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${copiedIdx === i % HELPLINES.length
+                    ? 'rgba(34,211,238,0.35)' : 'rgba(255,255,255,0.07)'}`,
+                  borderRadius: 7,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  outline: 'none',
+                  flexShrink: 0,
+                  lineHeight: 1,
+                  transition: 'background 0.15s,border-color 0.15s',
+                }}
+              >
+                <span style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'Inter,sans-serif' }}>
+                  {h.service}
+                </span>
+                <span style={{
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  fontFamily: 'JetBrains Mono,monospace',
+                  color: copiedIdx === i % HELPLINES.length ? '#22d3ee' : '#818cf8',
+                }}>
+                  {copiedIdx === i % HELPLINES.length ? '✓ Copied!' : h.number}
+                </span>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="10" height="10"
+                  style={{ color: '#475569', flexShrink: 0 }}>
+                  <rect x="5" y="5" width="9" height="9" rx="1.5"/>
+                  <path d="M3 11V2h9" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 
 const PRIORITY_COLORS: Record<string, string> = {
   critical: '#f43f5e',
@@ -195,6 +356,9 @@ export default function Dashboard() {
           {I.plus} New Case
         </Link>
       </div>
+
+      {/* ── Emergency Helplines Marquee ──────────────────── */}
+      <HelplineMarquee />
 
       {/* ── Primary KPI Row ──────────────────────────────── */}
       <div className="row g-3 mb-3">
