@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface StatCardProps {
-  icon: string;
+  icon?: React.ReactNode;
   label: string;
   value: number | string;
   color?: string;
@@ -14,8 +14,8 @@ export default function StatCard({
   icon,
   label,
   value,
-  color = 'var(--teal)',
-  colorMuted = 'var(--teal-muted)',
+  color = 'var(--accent)',
+  colorMuted = 'var(--accent-muted)',
   change,
   onClick,
 }: StatCardProps) {
@@ -29,13 +29,15 @@ export default function StatCard({
       }}
       onClick={onClick}
     >
-      <div className="stat-card-icon">{icon}</div>
+      {icon && (
+        <div className="stat-card-icon">{icon}</div>
+      )}
       <div className="stat-card-value">{value}</div>
       <div className="stat-card-label">{label}</div>
       {change && (
         <div
           className="stat-card-change"
-          style={{ color: change.value >= 0 ? 'var(--success)' : 'var(--danger)' }}
+          style={{ color: change.value >= 0 ? 'var(--status-ok)' : 'var(--status-crit)' }}
         >
           <span>{change.value >= 0 ? '↑' : '↓'}</span>
           <span>{Math.abs(change.value)}% {change.label}</span>

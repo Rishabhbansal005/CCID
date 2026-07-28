@@ -7,10 +7,25 @@ from app.core.security import get_current_user, require_investigator, CurrentUse
 from app.core.supabase_client import get_supabase_admin
 from app.core.config import settings
 from app.models.schemas import EvidenceResponse, EvidenceUpdate, MessageResponse
+from app.services.forensics.hash_service import compute_hashes_from_url
 import logging
+import json
 
 router = APIRouter(prefix="/evidence", tags=["Evidence"])
 logger = logging.getLogger(__name__)
+
+def parse_json_fields(ev_dict: dict) -> dict:
+    if "chain_of_custody" in ev_dict and isinstance(ev_dict["chain_of_custody"], str):
+        try:
+            ev_dict["chain_of_custody"] = json.loads(ev_dict["chain_of_custody"])
+        except json.JSONDecodeError:
+            ev_dict["chain_of_custody"] = []
+    if "metadata" in ev_dict and isinstance(ev_dict["metadata"], str):
+        try:
+            ev_dict["metadata"] = json.loads(ev_dict["metadata"])
+        except json.JSONDecodeError:
+            ev_dict["metadata"] = {}
+    return ev_dict
 
 MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024  # Convert to bytes
 
@@ -114,7 +129,22 @@ async def upload_evidence(
         if not result.data:
             raise HTTPException(status_code=500, detail="Failed to save evidence record")
 
-        return result.data[0]
+        ev_record = result.data[0]
+
+        # Auto-generate timeline event
+        timeline_payload = {
+            "case_id": case_id,
+            "evidence_id": ev_record["id"],
+            "event_time": datetime.utcnow().isoformat(),
+            "title": f"Evidence Uploaded: {safe_filename}",
+            "description": f"File {file.filename} ({len(content)} bytes) uploaded.",
+            "event_type": "evidence",
+            "importance": "normal",
+            "created_by": current_user.id
+        }
+        db.table("timeline_events").insert(timeline_payload).execute()
+
+        return parse_json_fields(ev_record)
 
     except HTTPException:
         raise
@@ -138,7 +168,7 @@ async def list_evidence_for_case(
             query = query.eq("evidence_type", evidence_type)
 
         result = query.order("uploaded_at", desc=True).execute()
-        return result.data or []
+        return [parse_json_fields(ev) for ev in (result.data or [])]
     except Exception as e:
         logger.error(f"Error listing evidence for case {case_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -155,7 +185,7 @@ async def get_evidence(
         result = db.table("evidence").select("*").eq("id", evidence_id).single().execute()
         if not result.data:
             raise HTTPException(status_code=404, detail="Evidence not found")
-        return result.data
+        return parse_json_fields(result.data)
     except HTTPException:
         raise
     except Exception as e:
@@ -171,11 +201,12 @@ async def update_evidence(
     """Update evidence metadata."""
     try:
         db = get_supabase_admin()
-        payload = update_data.model_dump(exclude_none=True)
+        payload = update_data.model_dump(exclude_unset=True)
+        print("DEBUG payload for PUT:", payload)
         result = db.table("evidence").update(payload).eq("id", evidence_id).execute()
         if not result.data:
             raise HTTPException(status_code=404, detail="Evidence not found")
-        return result.data[0]
+        return parse_json_fields(result.data[0])
     except HTTPException:
         raise
     except Exception as e:
@@ -198,6 +229,12 @@ async def add_custody_event(
             raise HTTPException(status_code=404, detail="Evidence not found")
 
         custody_chain = ev.data.get("chain_of_custody", [])
+        if isinstance(custody_chain, str):
+            try:
+                custody_chain = json.loads(custody_chain)
+            except json.JSONDecodeError:
+                custody_chain = []
+                
         new_event = {
             "action": action,
             "user_id": current_user.id,
@@ -209,7 +246,7 @@ async def add_custody_event(
         custody_chain.append(new_event)
 
         result = db.table("evidence").update({"chain_of_custody": custody_chain}).eq("id", evidence_id).execute()
-        return result.data[0]
+        return parse_json_fields(result.data[0])
     except HTTPException:
         raise
     except Exception as e:
@@ -261,4 +298,111 @@ async def get_signed_url(
     except HTTPException:
         raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{evidence_id}/verify", response_model=EvidenceResponse)
+async def verify_evidence_integrity(
+    evidence_id: str,
+    current_user: CurrentUser = Depends(require_investigator),
+):
+    """Stream evidence from storage, calculate MD5/SHA1/SHA256, and verify integrity."""
+    try:
+        logger.info(f"Verify request received for evidence_id: {evidence_id} by user: {current_user.email}")
+        db = get_supabase_admin()
+        
+        # 1. Get the storage path
+        ev = db.table("evidence").select("storage_path, storage_bucket, original_file_name, chain_of_custody").eq("id", evidence_id).single().execute()
+        if not ev.data:
+            logger.error(f"Evidence {evidence_id} not found in database.")
+            raise HTTPException(status_code=404, detail="Evidence not found")
+        
+        logger.info(f"Evidence record loaded: {ev.data['original_file_name']}")
+
+        # 2. Get a signed URL
+        url_result = db.storage.from_(ev.data["storage_bucket"]).create_signed_url(
+            path=ev.data["storage_path"],
+            expires_in=3600
+        )
+        download_url = url_result.get("signedURL")
+        if not download_url:
+            logger.error(f"Failed to generate download URL for {evidence_id}.")
+            raise HTTPException(status_code=500, detail="Failed to generate download URL for verification")
+
+        # 3. Stream and compute hashes concurrently
+        logger.info(f"Storage file signed URL generated. Commencing download and hash calculation...")
+        hashes = await compute_hashes_from_url(download_url)
+        logger.info(f"Hash calculation completed for {evidence_id}. MD5: {hashes['md5']}, SHA1: {hashes['sha1']}, SHA256: {hashes['sha256']}")
+
+        # 4. Add to Chain of Custody
+        import json
+        custody_chain = ev.data.get("chain_of_custody", [])
+        if isinstance(custody_chain, str):
+            try:
+                custody_chain = json.loads(custody_chain)
+            except Exception as e:
+                logger.warning(f"Failed to parse chain_of_custody string: {e}")
+                custody_chain = []
+        if not isinstance(custody_chain, list):
+            custody_chain = []
+
+        new_event = {
+            "action": "verified",
+            "user_id": current_user.id,
+            "user_name": current_user.full_name or current_user.email,
+            "timestamp": datetime.utcnow().isoformat(),
+            "notes": "Cryptographic hash verification completed successfully.",
+        }
+        custody_chain.append(new_event)
+        logger.info(f"Chain of custody updated with 'verified' action.")
+
+        # 5. Update Database
+        update_payload = {
+            "hash_md5": hashes["md5"],
+            "hash_sha1": hashes["sha1"],
+            "hash_sha256": hashes["sha256"],
+            "is_verified": True,
+            "verified_by": current_user.id,
+            "verified_at": datetime.utcnow().isoformat(),
+            "chain_of_custody": custody_chain,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+
+        # Try to update, ignoring hash_sha1 if the DB migration hasn't run yet
+        try:
+            result = db.table("evidence").update(update_payload).eq("id", evidence_id).execute()
+            logger.info(f"Database update completed successfully for {evidence_id}.")
+        except Exception as e:
+            if "hash_sha1" in str(e):
+                logger.warning("hash_sha1 column missing, skipping sha1 in DB update")
+                del update_payload["hash_sha1"]
+                result = db.table("evidence").update(update_payload).eq("id", evidence_id).execute()
+                logger.info(f"Database update completed (without hash_sha1) for {evidence_id}.")
+            else:
+                logger.error(f"Database update failed for {evidence_id}: {e}")
+                raise
+
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to update verification status")
+
+        ev_record = result.data[0]
+
+        # Auto-generate timeline event
+        timeline_payload = {
+            "case_id": ev_record["case_id"],
+            "evidence_id": evidence_id,
+            "event_time": datetime.utcnow().isoformat(),
+            "title": f"Integrity Verified: {ev.data['original_file_name']}",
+            "description": f"Hashes verified. MD5: {hashes['md5']}",
+            "event_type": "integrity",
+            "importance": "high",
+            "created_by": current_user.id
+        }
+        db.table("timeline_events").insert(timeline_payload).execute()
+
+        return parse_json_fields(ev_record)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Evidence verification error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

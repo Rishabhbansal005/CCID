@@ -84,7 +84,7 @@ export default function FindingForm({ mode, initialData, findingId, onSuccess, o
       if (!form.case_id) return [];
       const { data } = await supabase
         .from('evidence')
-        .select('id, evidence_number, original_file_name')
+        .select('id, evidence_number, file_name')
         .eq('case_id', form.case_id)
         .order('created_at', { ascending: false });
       return data || [];
@@ -277,7 +277,7 @@ export default function FindingForm({ mode, initialData, findingId, onSuccess, o
                   <option value="">No evidence linked</option>
                   {evidenceList.map((ev: any) => (
                     <option key={ev.id} value={ev.id}>
-                      {ev.evidence_number} — {ev.original_file_name}
+                      {ev.evidence_number} — {ev.file_name}
                     </option>
                   ))}
                 </select>

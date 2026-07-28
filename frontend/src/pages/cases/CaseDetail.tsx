@@ -6,8 +6,14 @@ import evidenceApi from '@/api/evidence';
 import { StatusBadge, PriorityBadge } from '@/components/shared/Badges';
 import { format } from 'date-fns';
 import type { CaseStatus, CasePriority } from '@/types';
+import CaseTimeline from './CaseTimeline';
+import CaseFindings from './CaseFindings';
+import CaseRiskTab from './tabs/CaseRiskTab';
+import CaseReportsTab from './tabs/CaseReportsTab';
+import CaseCorrelationsTab from './tabs/CaseCorrelationsTab';
+import CaseSuspectsTab from './tabs/CaseSuspectsTab';
 
-type ActiveTab = 'overview' | 'evidence' | 'findings' | 'timeline' | 'risk' | 'reports';
+type ActiveTab = 'overview' | 'evidence' | 'suspects' | 'findings' | 'correlations' | 'timeline' | 'risk' | 'reports';
 
 export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -61,8 +67,8 @@ export default function CaseDetail() {
   if (isLoading) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
-        <div style={{ width: 40, height: 40, border: '3px solid var(--border-color)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-        <div style={{ color: 'var(--text-muted)' }}>Loading case...</div>
+        <div style={{ width: 36, height: 36, border: '2px solid rgba(99,102,241,0.15)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+        <div style={{ color: '#475569', fontSize: 13, fontFamily: 'monospace' }}>Loading case…</div>
       </div>
     );
   }
@@ -70,7 +76,6 @@ export default function CaseDetail() {
   if (error || !caseData) {
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">🚫</div>
         <div className="empty-state-title">Case Not Found</div>
         <div className="empty-state-text">This case doesn't exist or you don't have access.</div>
         <Link to="/cases" className="btn btn-primary">Back to Cases</Link>
@@ -81,12 +86,14 @@ export default function CaseDetail() {
   const c = caseData;
 
   const TABS: { key: ActiveTab; label: string; count?: number }[] = [
-    { key: 'overview', label: '📋 Overview' },
-    { key: 'evidence', label: '🔬 Evidence', count: stats?.evidence_count },
-    { key: 'findings', label: '🎯 Findings', count: stats?.findings_count },
-    { key: 'timeline', label: '📅 Timeline', count: stats?.timeline_events },
-    { key: 'risk', label: '🛡️ Risk' },
-    { key: 'reports', label: '📄 Reports' },
+    { key: 'overview',     label: 'Overview' },
+    { key: 'evidence',     label: 'Evidence',     count: stats?.evidence_count },
+    { key: 'suspects',     label: 'Suspects' },
+    { key: 'findings',     label: 'Findings',     count: stats?.findings_count },
+    { key: 'correlations', label: 'Correlations' },
+    { key: 'timeline',     label: 'Timeline',     count: stats?.timeline_events },
+    { key: 'risk',         label: 'Risk' },
+    { key: 'reports',      label: 'Reports' },
   ];
 
   return (
@@ -119,9 +126,9 @@ export default function CaseDetail() {
             className="btn btn-outline-secondary"
             onClick={() => setEditing(!editing)}
           >
-            {editing ? 'Cancel' : '✏️ Edit'}
+            {editing ? 'Cancel' : 'Edit'}
           </button>
-          <Link to={`/evidence?case=${id}`} className="btn btn-primary">
+          <Link to={`/evidence/upload?case=${id}`} className="btn btn-primary">
             + Upload Evidence
           </Link>
         </div>
@@ -131,20 +138,15 @@ export default function CaseDetail() {
       {stats && (
         <div className="row g-3 mb-4">
           {[
-            { label: 'Evidence', value: stats.evidence_count, icon: '🔬', color: 'var(--teal)' },
-            { label: 'Findings', value: stats.findings_count, icon: '🎯', color: 'var(--orange)' },
-            { label: 'Critical', value: stats.critical_findings, icon: '🔴', color: 'var(--danger)' },
-            { label: 'Events', value: stats.timeline_events, icon: '📅', color: 'var(--purple)' },
+            { label: 'Evidence',  value: stats.evidence_count,   color: '#6366f1' },
+            { label: 'Findings',  value: stats.findings_count,   color: '#f59e0b' },
+            { label: 'Critical',  value: stats.critical_findings, color: '#f43f5e' },
+            { label: 'Events',    value: stats.timeline_events,   color: '#a78bfa' },
           ].map((s) => (
             <div key={s.label} className="col-6 col-xl-3">
-              <div className="card" style={{ padding: '14px 18px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 22 }}>{s.icon}</span>
-                  <div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
-                  </div>
-                </div>
+              <div className="stat-card" style={{ ['--stat-color' as string]: s.color, ['--stat-color-muted' as string]: `${s.color}18` }}>
+                <div className="stat-card-value" style={{ fontSize: 28 }}>{s.value}</div>
+                <div className="stat-card-label">{s.label}</div>
               </div>
             </div>
           ))}
@@ -233,10 +235,10 @@ export default function CaseDetail() {
 
                     {c.tags.length > 0 && (
                       <div style={{ marginTop: 20 }}>
-                        <h6 style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Tags</h6>
+                        <h6 style={{ color: '#475569', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, fontFamily: 'monospace', fontWeight: 700 }}>Tags</h6>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {c.tags.map((tag) => (
-                            <span key={tag} style={{ background: 'var(--teal-muted)', color: 'var(--teal)', padding: '4px 10px', borderRadius: 20, fontSize: 12, border: '1px solid rgba(0,212,255,0.2)' }}>
+                            <span key={tag} style={{ background: 'rgba(99,102,241,0.10)', color: '#818cf8', padding: '3px 10px', borderRadius: 4, fontSize: 11, border: '1px solid rgba(99,102,241,0.2)', fontFamily: 'monospace' }}>
                               {tag}
                             </span>
                           ))}
@@ -246,8 +248,8 @@ export default function CaseDetail() {
                   </div>
 
                   <div className="col-12 col-md-4">
-                    <div style={{ background: 'var(--bg-input)', borderRadius: 10, padding: '16px 20px', border: '1px solid var(--border-subtle)' }}>
-                      <h6 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
+                    <div style={{ background: 'rgba(8,13,22,0.8)', borderRadius: 8, padding: '16px 20px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <h6 style={{ fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 16, fontFamily: 'monospace' }}>
                         Case Details
                       </h6>
                       {[
@@ -286,7 +288,6 @@ export default function CaseDetail() {
               </div>
               {!evidence || evidence.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-state-icon">🔬</div>
                   <div className="empty-state-title">No Evidence Yet</div>
                   <div className="empty-state-text">Upload digital evidence files to this case.</div>
                   <Link to={`/evidence/upload?case=${id}`} className="btn btn-primary">Upload Evidence</Link>
@@ -300,6 +301,7 @@ export default function CaseDetail() {
                         <th>Filename</th>
                         <th>Type</th>
                         <th>Size</th>
+                        <th>Status</th>
                         <th>SHA256</th>
                         <th>Uploaded</th>
                       </tr>
@@ -307,10 +309,35 @@ export default function CaseDetail() {
                     <tbody>
                       {evidence.map((ev) => (
                         <tr key={ev.id}>
-                          <td><span className="font-mono" style={{ color: 'var(--teal)', fontSize: 12 }}>{ev.evidence_number}</span></td>
-                          <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{ev.original_file_name}</td>
+                          <td>
+                            <Link to={`/evidence/${ev.id}`} style={{ textDecoration: 'none' }}>
+                              <span className="font-mono" style={{ color: 'var(--teal)', fontSize: 12 }}>{ev.evidence_number}</span>
+                            </Link>
+                          </td>
+                          <td>
+                            <Link to={`/evidence/${ev.id}`} style={{ textDecoration: 'none', color: 'var(--text-primary)', fontWeight: 500 }}>
+                              {ev.original_file_name}
+                            </Link>
+                          </td>
                           <td style={{ fontSize: 12, textTransform: 'capitalize' }}>{ev.evidence_type}</td>
                           <td style={{ fontSize: 12 }}>{(ev.file_size / 1024 / 1024).toFixed(2)} MB</td>
+                          <td>
+                            {(() => {
+                              const s = ev.processing_status || 'pending';
+                              const cfg: Record<string, { bg: string; color: string; border: string }> = {
+                                analyzed:   { bg: 'rgba(34,211,238,0.10)',  color: '#22d3ee', border: '1px solid rgba(34,211,238,0.2)' },
+                                processing: { bg: 'rgba(99,102,241,0.10)',  color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' },
+                                error:      { bg: 'rgba(244,63,94,0.10)',   color: '#fb7185', border: '1px solid rgba(244,63,94,0.2)' },
+                                pending:    { bg: 'rgba(100,116,139,0.10)', color: '#64748b', border: '1px solid rgba(100,116,139,0.15)' },
+                              };
+                              const { bg, color, border } = cfg[s] || cfg['pending'];
+                              return (
+                                <span style={{ background: bg, color, border, padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: 'monospace' }}>
+                                  {s}
+                                </span>
+                              );
+                            })()}
+                          </td>
                           <td>
                             {ev.hash_sha256 && (
                               <span className="hash-display">
@@ -330,20 +357,34 @@ export default function CaseDetail() {
             </div>
           )}
 
-          {/* Coming Soon tabs */}
-          {['findings', 'timeline', 'risk', 'reports'].includes(activeTab) && (
-            <div className="empty-state">
-              <div className="empty-state-icon">🔜</div>
-              <div className="empty-state-title">
-                {activeTab === 'findings' && 'Findings Management'}
-                {activeTab === 'timeline' && 'Investigation Timeline'}
-                {activeTab === 'risk' && 'Risk Assessment'}
-                {activeTab === 'reports' && 'PDF Reports'}
-              </div>
-              <div className="empty-state-text">
-                This module is ready for Phase 4 implementation. The backend API is fully functional.
-              </div>
-            </div>
+          {/* Suspects Tab */}
+          {activeTab === 'suspects' && (
+            <CaseSuspectsTab caseId={id!} />
+          )}
+
+          {/* Timeline Tab */}
+          {activeTab === 'timeline' && (
+            <CaseTimeline caseId={id!} />
+          )}
+
+          {/* Findings Tab */}
+          {activeTab === 'findings' && (
+            <CaseFindings caseId={id!} />
+          )}
+
+          {/* Risk Tab */}
+          {activeTab === 'risk' && (
+            <CaseRiskTab caseId={id!} />
+          )}
+
+          {/* Reports Tab */}
+          {activeTab === 'reports' && (
+            <CaseReportsTab caseId={id!} caseNumber={c.case_number} />
+          )}
+
+          {/* Correlations Tab */}
+          {activeTab === 'correlations' && (
+            <CaseCorrelationsTab caseId={id!} />
           )}
         </div>
       </div>

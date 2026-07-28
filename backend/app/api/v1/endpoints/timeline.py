@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.core.security import get_current_user, require_investigator, CurrentUser
 from app.core.supabase_client import get_supabase_admin
 from app.models.schemas import (
@@ -13,11 +14,29 @@ logger = logging.getLogger(__name__)
 @router.get("/case/{case_id}", response_model=list[TimelineEventResponse])
 async def list_timeline_events(
     case_id: str,
+    evidence_id: Optional[str] = Query(None),
+    event_type: Optional[str] = Query(None),
+    importance: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     current_user: CurrentUser = Depends(get_current_user),
 ):
     try:
         db = get_supabase_admin()
-        result = db.table("timeline_events").select("*").eq("case_id", case_id).order("event_time").execute()
+        query = db.table("timeline_events").select("*").eq("case_id", case_id)
+        
+        if evidence_id:
+            query = query.eq("evidence_id", evidence_id)
+        if event_type:
+            query = query.eq("event_type", event_type)
+        if importance:
+            query = query.eq("importance", importance)
+        if start_date:
+            query = query.gte("event_time", start_date)
+        if end_date:
+            query = query.lte("event_time", end_date)
+            
+        result = query.order("event_time").execute()
         return result.data or []
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

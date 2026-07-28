@@ -108,3 +108,20 @@ async def update_risk_assessment(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+from app.services.risk_service import auto_update_case_risk
+
+@router.post("/case/{case_id}/auto-update", response_model=RiskAssessmentResponse)
+async def trigger_auto_update_risk(
+    case_id: str,
+    current_user: CurrentUser = Depends(require_investigator),
+):
+    try:
+        updated = auto_update_case_risk(case_id, system_user_id=current_user.id)
+        if not updated:
+            raise HTTPException(status_code=500, detail="Failed to auto-update risk assessment")
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

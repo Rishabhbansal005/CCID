@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
 
 // Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -24,13 +24,8 @@ import CaseList from '@/pages/cases/CaseList';
 import CaseDetail from '@/pages/cases/CaseDetail';
 import NewCase from '@/pages/cases/NewCase';
 import EvidenceUpload from '@/pages/evidence/EvidenceUpload';
+import EvidenceDetail from '@/pages/evidence/EvidenceDetail';
 
-// Placeholder pages (Phase 4 — partial)
-import {
-  RiskPlaceholder,
-  ReportsPlaceholder,
-  ForensicsPlaceholder,
-} from '@/pages/Placeholders';
 
 // Findings module (fully implemented)
 import FindingsList from '@/pages/findings/FindingsList';
@@ -39,6 +34,16 @@ import FindingForm from '@/pages/findings/FindingForm';
 
 // Timeline module (fully implemented)
 import Timeline from '@/pages/timeline/Timeline';
+
+// Risk Assessment module
+import RiskList from '@/pages/risk_assessments/RiskList';
+import RiskForm from '@/pages/risk_assessments/RiskForm';
+import RiskDetail from '@/pages/risk_assessments/RiskDetail';
+
+// Reports module
+import ReportList from '@/pages/reports/ReportList';
+import ReportWizard from '@/pages/reports/ReportWizard';
+import ReportDetail from '@/pages/reports/ReportDetail';
 
 // React Query client
 const queryClient = new QueryClient({
@@ -75,15 +80,23 @@ function App() {
                 {/* Evidence */}
                 <Route path="/evidence" element={<EvidenceUpload />} />
                 <Route path="/evidence/upload" element={<EvidenceUpload />} />
+                <Route path="/evidence/:id" element={<EvidenceDetail />} />
 
                 {/* Findings */}
                 <Route path="/findings" element={<FindingsList />} />
                 <Route path="/findings/new" element={<FindingForm mode="create" />} />
                 <Route path="/findings/:id" element={<FindingDetail />} />
                 <Route path="/timeline" element={<Timeline />} />
-                <Route path="/risk" element={<RiskPlaceholder />} />
-                <Route path="/reports" element={<ReportsPlaceholder />} />
-                <Route path="/forensics" element={<ForensicsPlaceholder />} />
+                
+                {/* Risk Assessments */}
+                <Route path="/risk" element={<RiskList />} />
+                <Route path="/risk/new" element={<RiskForm mode="create" />} />
+                <Route path="/risk/:id" element={<RiskDetail />} />
+
+                {/* Reports */}
+                <Route path="/reports" element={<ReportList />} />
+                <Route path="/reports/new" element={<ReportWizard />} />
+                <Route path="/reports/:id" element={<ReportDetail />} />
 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -92,7 +105,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+
     </QueryClientProvider>
   );
 }

@@ -6,7 +6,7 @@ import { StatusBadge, PriorityBadge } from '@/components/shared/Badges';
 import type { Case, CaseStatus, CasePriority } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
+const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
   { value: 'open', label: 'Open' },
   { value: 'active', label: 'Active' },
@@ -22,6 +22,19 @@ const PRIORITY_OPTIONS = [
   { value: 'medium', label: 'Medium' },
   { value: 'low', label: 'Low' },
 ];
+
+const SearchIcon = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
+    <circle cx="7" cy="7" r="4.5" />
+    <path d="M10.5 10.5L14 14" strokeLinecap="round" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+    <path d="M8 3v10M3 8h10" strokeLinecap="round" />
+  </svg>
+);
 
 export default function CaseList() {
   const [filters, setFilters] = useState({ status: '', priority: '', search: '' });
@@ -41,7 +54,6 @@ export default function CaseList() {
     staleTime: 30_000,
   });
 
-  // Apply filters in-memory
   const cases = useMemo(() => {
     let result = allCases;
     if (filters.status) result = result.filter((c) => c.status === filters.status);
@@ -64,45 +76,48 @@ export default function CaseList() {
     setPage(1);
   };
 
+  const hasFilters = filters.status || filters.priority || filters.search;
+
   return (
-    <div>
+    <div className="animate-in">
       {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-header-title">Case Management</h1>
           <p className="page-header-subtitle">
-            {total} total case{total !== 1 ? 's' : ''} in the system
+            {isLoading ? 'Loading…' : `${total} case${total !== 1 ? 's' : ''} in the system`}
           </p>
         </div>
         <div className="page-header-actions">
           <Link to="/cases/new" className="btn btn-primary" id="btn-new-case">
-            + New Case
+            <PlusIcon /> New Case
           </Link>
         </div>
       </div>
 
-      {/* Main Table Card */}
+      {/* Table Card */}
       <div className="card">
         {/* Filter Bar */}
         <div className="filter-bar">
           {/* Search */}
           <div className="search-wrapper" style={{ flex: 1, minWidth: 200 }}>
-            <span className="search-icon">🔍</span>
+            <span className="search-icon" style={{ color: 'var(--txt-muted)' }}>
+              <SearchIcon />
+            </span>
             <input
               id="case-search"
               type="text"
               className="form-control"
-              placeholder="Search cases..."
+              placeholder="Search by title or case number…"
               value={filters.search}
               onChange={(e) => handleFilter('search', e.target.value)}
             />
           </div>
 
-          {/* Status filter */}
           <select
             id="case-filter-status"
             className="form-select"
-            style={{ width: 'auto' }}
+            style={{ width: 'auto', minWidth: 140 }}
             value={filters.status}
             onChange={(e) => handleFilter('status', e.target.value)}
           >
@@ -111,11 +126,10 @@ export default function CaseList() {
             ))}
           </select>
 
-          {/* Priority filter */}
           <select
             id="case-filter-priority"
             className="form-select"
-            style={{ width: 'auto' }}
+            style={{ width: 'auto', minWidth: 140 }}
             value={filters.priority}
             onChange={(e) => handleFilter('priority', e.target.value)}
           >
@@ -124,8 +138,7 @@ export default function CaseList() {
             ))}
           </select>
 
-          {/* Clear filters */}
-          {(filters.status || filters.priority || filters.search) && (
+          {hasFilters && (
             <button
               className="btn btn-outline-secondary btn-sm"
               onClick={() => setFilters({ status: '', priority: '', search: '' })}
@@ -135,30 +148,31 @@ export default function CaseList() {
           )}
         </div>
 
-        {/* Table */}
-        <div className="card-body" style={{ padding: 0 }}>
+        {/* Content */}
+        <div style={{ padding: 0 }}>
           {error ? (
-            <div className="alert alert-danger m-4">
-              Failed to load cases from Supabase. Check your connection.
+            <div className="alert alert-danger m-4" style={{ margin: 20 }}>
+              Failed to load cases. Check your connection and try again.
             </div>
           ) : isLoading ? (
-            <div style={{ padding: 24 }}>
+            <div style={{ padding: '20px 20px' }}>
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="skeleton" style={{ height: 52, marginBottom: 8, borderRadius: 8 }} />
+                <div key={i} className="skeleton" style={{ height: 52, marginBottom: 8, borderRadius: 6 }} />
               ))}
             </div>
           ) : cases.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">🗂️</div>
               <div className="empty-state-title">No cases found</div>
               <div className="empty-state-text">
-                {filters.status || filters.priority || filters.search
+                {hasFilters
                   ? 'No cases match your current filters. Try adjusting the search criteria.'
                   : 'No investigation cases have been created yet.'}
               </div>
-              <Link to="/cases/new" className="btn btn-primary">
-                Create First Case
-              </Link>
+              {!hasFilters && (
+                <Link to="/cases/new" className="btn btn-primary">
+                  <PlusIcon /> Create First Case
+                </Link>
+              )}
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -170,9 +184,8 @@ export default function CaseList() {
                     <th>Category</th>
                     <th>Priority</th>
                     <th>Status</th>
-                    <th>Assigned To</th>
                     <th>Created</th>
-                    <th>Actions</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -182,53 +195,64 @@ export default function CaseList() {
                         <Link
                           to={`/cases/${c.id}`}
                           className="font-mono"
-                          style={{ color: 'var(--teal)', fontSize: 12, textDecoration: 'none' }}
+                          style={{ color: '#818cf8', fontSize: 12, textDecoration: 'none', fontWeight: 600 }}
                         >
                           {c.case_number}
                         </Link>
                       </td>
                       <td>
-                        <Link
-                          to={`/cases/${c.id}`}
-                          style={{ color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'none', fontSize: 13 }}
-                        >
-                          {c.title}
-                        </Link>
-                        {c.tags.length > 0 && (
-                          <div style={{ marginTop: 4, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                            {c.tags.slice(0, 2).map((tag) => (
-                              <span key={tag} style={{ fontSize: 10, background: 'var(--teal-muted)', color: 'var(--teal)', padding: '1px 6px', borderRadius: 20 }}>
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                        <div>
+                          <Link
+                            to={`/cases/${c.id}`}
+                            style={{ color: '#f1f5f9', fontWeight: 500, textDecoration: 'none', fontSize: 13 }}
+                          >
+                            {c.title}
+                          </Link>
+                          {c.tags.length > 0 && (
+                            <div style={{ marginTop: 4, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                              {c.tags.slice(0, 3).map((tag) => (
+                                <span
+                                  key={tag}
+                                  style={{
+                                    fontSize: 10,
+                                    background: 'rgba(99,102,241,0.1)',
+                                    color: '#818cf8',
+                                    padding: '1px 7px',
+                                    borderRadius: 4,
+                                    fontFamily: 'monospace',
+                                    border: '1px solid rgba(99,102,241,0.2)',
+                                  }}
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td>
                         {c.category ? (
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
+                          <span style={{ fontSize: 12, color: '#64748b', textTransform: 'capitalize' }}>
                             {c.category.replace('_', ' ')}
                           </span>
-                        ) : '—'}
+                        ) : <span style={{ color: '#2d3a52' }}>—</span>}
                       </td>
                       <td><PriorityBadge priority={c.priority} /></td>
                       <td><StatusBadge status={c.status} /></td>
-                      <td style={{ fontSize: 12 }}>
-                        {(c as any).assignee?.full_name ?? (c as any).assignee?.email ?? '—'}
-                      </td>
-                      <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                        {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                      <td>
+                        <span style={{ fontSize: 12, fontFamily: 'monospace', color: '#475569' }}>
+                          {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                        </span>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <Link
-                            to={`/cases/${c.id}`}
-                            className="btn btn-sm btn-outline-primary"
-                            id={`btn-view-case-${c.id}`}
-                          >
-                            View
-                          </Link>
-                        </div>
+                        <Link
+                          to={`/cases/${c.id}`}
+                          className="btn btn-sm btn-outline-secondary"
+                          id={`btn-view-case-${c.id}`}
+                          style={{ fontSize: 11 }}
+                        >
+                          View
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -242,17 +266,16 @@ export default function CaseList() {
         {totalPages > 1 && (
           <div style={{
             padding: '12px 20px',
-            borderTop: '1px solid var(--border-subtle)',
+            borderTop: '1px solid rgba(255,255,255,0.04)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             fontSize: 12,
-            color: 'var(--text-muted)',
           }}>
-            <span>
+            <span style={{ color: '#475569', fontFamily: 'monospace' }}>
               Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
             </span>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 4 }}>
               <button
                 className="btn btn-outline-secondary btn-sm"
                 disabled={page === 1}

@@ -1,32 +1,106 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
 interface NavItem {
   path: string;
-  icon: string;
   label: string;
   section?: string;
   badge?: number;
+  icon: React.ReactNode;
 }
 
+// Clean SVG icons — no emojis
+const Icons = {
+  dashboard: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <rect x="1" y="1" width="6" height="6" rx="1" />
+      <rect x="9" y="1" width="6" height="6" rx="1" />
+      <rect x="1" y="9" width="6" height="6" rx="1" />
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+    </svg>
+  ),
+  cases: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <path d="M2 4h12v10H2z" />
+      <path d="M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
+      <path d="M5 8h6M5 11h4" />
+    </svg>
+  ),
+  evidence: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <circle cx="7" cy="7" r="4.5" />
+      <path d="M10.5 10.5L14 14" strokeLinecap="round" />
+      <path d="M7 5v2M7 9h.01" strokeLinecap="round" />
+    </svg>
+  ),
+  findings: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <path d="M8 2L2 14h12L8 2z" strokeLinejoin="round" />
+      <path d="M8 7v3M8 11.5h.01" strokeLinecap="round" />
+    </svg>
+  ),
+  timeline: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <circle cx="4" cy="4" r="1.5" />
+      <circle cx="4" cy="12" r="1.5" />
+      <circle cx="12" cy="8" r="1.5" />
+      <path d="M5.5 4.5L10.5 7M5.5 11.5L10.5 9" />
+    </svg>
+  ),
+  risk: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <path d="M8 1.5L2 14.5h12L8 1.5z" strokeLinejoin="round" />
+      <path d="M8 6v4" strokeLinecap="round" />
+      <circle cx="8" cy="12" r=".5" fill="currentColor" />
+    </svg>
+  ),
+  reports: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <path d="M3 1h7l3 3v11H3V1z" />
+      <path d="M10 1v3h3" />
+      <path d="M5.5 8h5M5.5 11h3" strokeLinecap="round" />
+    </svg>
+  ),
+  shield: (
+    <svg viewBox="0 0 16 16" fill="currentColor" width="18" height="18">
+      <path d="M8 1L2 3.5V8c0 3.5 2.5 6 6 7.5C14 14 16 11.5 16 8V3.5L8 1zM8 2.2l5.5 2v3.8c0 2.8-2 5-5.5 6.3C5 13 3 10.8 3 8V4.2L8 2.2z" />
+    </svg>
+  ),
+  chevronLeft: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="14" height="14">
+      <path d="M10 3L5 8l5 5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  chevronRight: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="14" height="14">
+      <path d="M6 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  logout: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="14" height="14">
+      <path d="M6 2H2v12h4M10 5l4 3-4 3M14 8H6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+};
+
 const NAV_ITEMS: NavItem[] = [
-  { path: '/dashboard', icon: '⚡', label: 'Dashboard', section: 'MAIN' },
-  { path: '/cases', icon: '🗂️', label: 'Cases', section: 'INVESTIGATION' },
-  { path: '/evidence', icon: '🔬', label: 'Evidence', section: 'INVESTIGATION' },
-  { path: '/findings', icon: '🎯', label: 'Findings', section: 'INVESTIGATION' },
-  { path: '/timeline', icon: '📅', label: 'Timeline', section: 'ANALYSIS' },
-  { path: '/risk', icon: '🛡️', label: 'Risk Assessment', section: 'ANALYSIS' },
-  { path: '/reports', icon: '📄', label: 'Reports', section: 'REPORTING' },
-  { path: '/forensics', icon: '🔌', label: 'Forensic Tools', section: 'TOOLS' },
+  { path: '/dashboard',  icon: Icons.dashboard, label: 'Dashboard',       section: 'OVERVIEW' },
+  { path: '/cases',      icon: Icons.cases,     label: 'Cases',            section: 'INVESTIGATION' },
+  { path: '/evidence',   icon: Icons.evidence,  label: 'Evidence',         section: 'INVESTIGATION' },
+  { path: '/findings',   icon: Icons.findings,  label: 'Findings',         section: 'INVESTIGATION' },
+  { path: '/timeline',   icon: Icons.timeline,  label: 'Timeline',         section: 'ANALYSIS' },
+  { path: '/risk',       icon: Icons.risk,      label: 'Risk Assessment',  section: 'ANALYSIS' },
+  { path: '/reports',    icon: Icons.reports,   label: 'Reports',          section: 'OUTPUT' },
 ];
 
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  onContactOpen: () => void;
 }
 
-export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ collapsed, onToggle, onContactOpen }: SidebarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -39,8 +113,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     if (name) {
       const parts = name.trim().split(' ');
       return parts.length > 1
-        ? parts[0][0] + parts[parts.length - 1][0]
-        : parts[0].substring(0, 2);
+        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+        : parts[0].substring(0, 2).toUpperCase();
     }
     return email?.substring(0, 2).toUpperCase() ?? 'U?';
   };
@@ -54,13 +128,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
-      {/* Logo */}
+      {/* Branding */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">🔍</div>
+        <div className="sidebar-logo-icon">{Icons.shield}</div>
         {!collapsed && (
           <div className="sidebar-logo-text">
             <span className="sidebar-logo-title">CCID</span>
-            <span className="sidebar-logo-subtitle">Investigation</span>
+            <span className="sidebar-logo-subtitle">Investigation Platform</span>
           </div>
         )}
         <button
@@ -71,14 +145,17 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             border: 'none',
             cursor: 'pointer',
             color: 'var(--text-muted)',
-            fontSize: '16px',
             padding: '4px',
-            borderRadius: '4px',
-            transition: 'color 0.2s',
+            borderRadius: 'var(--radius-sm)',
+            display: 'flex',
+            alignItems: 'center',
+            transition: 'color 0.15s',
           }}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)')}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = 'var(--text-muted)')}
         >
-          {collapsed ? '▶' : '◀'}
+          {collapsed ? Icons.chevronRight : Icons.chevronLeft}
         </button>
       </div>
 
@@ -98,7 +175,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 }
                 title={collapsed ? item.label : undefined}
               >
-                <span className="nav-icon">{item.icon}</span>
+                <span className="nav-icon-wrap">{item.icon}</span>
                 {!collapsed && <span className="nav-label">{item.label}</span>}
                 {!collapsed && item.badge && item.badge > 0 && (
                   <span className="nav-badge">{item.badge}</span>
@@ -109,34 +186,88 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         ))}
       </nav>
 
+      {/* Contact / Support */}
+      <div style={{ padding: collapsed ? '4px 8px' : '4px 12px', marginBottom: '4px' }}>
+        <button
+          onClick={onContactOpen}
+          title={collapsed ? 'Contact & Support' : undefined}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: collapsed ? '8px' : '8px 12px',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            background: 'none',
+            border: '1px solid var(--border-subtle, #2a2d3e)',
+            borderRadius: 'var(--radius-sm, 6px)',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 500,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.1)';
+            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(99,102,241,0.4)';
+            (e.currentTarget as HTMLElement).style.color = '#818cf8';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.background = 'none';
+            (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle, #2a2d3e)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
+          }}
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="15" height="15" style={{ flexShrink: 0 }}>
+            <path d="M2 6l6 4 6-4" strokeLinecap="round" />
+            <rect x="1" y="3.5" width="14" height="9" rx="2" />
+          </svg>
+          {!collapsed && <span>Contact &amp; Support</span>}
+        </button>
+      </div>
+
       {/* User Footer */}
       <div className="sidebar-footer">
-        {!collapsed && (
+        {!collapsed ? (
           <div
             className="sidebar-user"
             onClick={handleSignOut}
-            title="Click to sign out"
+            title="Sign out"
           >
             <div className="sidebar-avatar">
               {getInitials(user?.full_name, user?.email)}
             </div>
-            <div className="sidebar-user-info" style={{ flex: 1, overflow: 'hidden' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div className="sidebar-user-info" style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
                 {user?.full_name || user?.email}
               </div>
-              <div style={{ fontSize: '10px', color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <div style={{
+                fontSize: '10px',
+                color: 'var(--text-muted)',
+                fontFamily: 'var(--font-mono)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+              }}>
                 {user?.role}
               </div>
             </div>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>⤴</span>
+            <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
+              {Icons.logout}
+            </span>
           </div>
-        )}
-        {collapsed && (
+        ) : (
           <div
             className="sidebar-avatar"
             onClick={handleSignOut}
-            style={{ margin: '0 auto', cursor: 'pointer' }}
-            title={`${user?.full_name || user?.email} — Click to sign out`}
+            style={{ margin: '4px auto', cursor: 'pointer' }}
+            title={`${user?.full_name || user?.email} — Sign out`}
           >
             {getInitials(user?.full_name, user?.email)}
           </div>

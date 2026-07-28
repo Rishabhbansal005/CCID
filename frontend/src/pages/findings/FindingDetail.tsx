@@ -22,7 +22,7 @@ export default function FindingDetail() {
         .select(`
           *,
           case:cases(id, case_number, title),
-          evidence:evidence(id, evidence_number, original_file_name)
+          evidence:evidence(id, evidence_number, file_name, storage_path)
         `)
         .eq('id', id!)
         .single();
@@ -56,6 +56,29 @@ export default function FindingDetail() {
       queryClient.invalidateQueries({ queryKey: ['findings', 'list'] });
     },
   });
+
+  const handleDownloadEvidence = async (storagePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('forensic_uploads')
+        .createSignedUrl(storagePath, 3600); // 1 hour
+
+      if (error) throw error;
+      
+      // Trigger download
+      const link = document.createElement('a');
+      link.href = data.signedUrl;
+      link.download = fileName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Failed to download evidence:', err);
+      alert('Failed to download evidence. Please try again.');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -125,7 +148,7 @@ export default function FindingDetail() {
             {finding.case && (
               <Link
                 to={`/cases/${finding.case_id}`}
-                style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}
+                style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', textDecoration: 'none', background: 'var(--bg-input)', padding: '4px 10px', borderRadius: 20, border: '1px solid var(--border-subtle)' }}
               >
                 📁 {(finding.case as any).case_number}
               </Link>
@@ -179,180 +202,183 @@ export default function FindingDetail() {
         </div>
       )}
 
-      <div className="row g-3">
+      <div className="row" style={{ gap: '24px', flexWrap: 'wrap', margin: 0 }}>
         {/* Main Content */}
-        <div className="col-12 col-xl-8">
-          {/* Description */}
-          <div className="card mb-3">
-            <div className="card-header">
-              <h6 style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>📋 Description</h6>
-            </div>
-            <div className="card-body">
-              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap' }}>
-                {finding.description}
-              </p>
-            </div>
-          </div>
-
-          {/* MITRE ATT&CK */}
-          {(finding.mitre_tactic || finding.mitre_technique) && (
-            <div className="card mb-3">
-              <div className="card-header">
-                <h6 style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>🛡️ MITRE ATT&CK</h6>
-              </div>
-              <div className="card-body">
-                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-                  {finding.mitre_tactic && (
-                    <div>
-                      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Tactic</div>
-                      <span style={{ background: 'var(--purple-muted)', color: 'var(--purple)', padding: '4px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, border: '1px solid rgba(139,92,246,0.3)' }}>
-                        {finding.mitre_tactic}
-                      </span>
-                    </div>
-                  )}
-                  {finding.mitre_technique && (
-                    <div>
-                      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Technique</div>
-                      <a
-                        href={`https://attack.mitre.org/techniques/${finding.mitre_technique.split(' ')[0]}/`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono"
-                        style={{ color: 'var(--teal)', fontSize: 13 }}
-                      >
-                        {finding.mitre_technique} ↗
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* IOC Indicators */}
-          {finding.ioc_indicators && finding.ioc_indicators.length > 0 && (
-            <div className="card mb-3">
-              <div className="card-header">
-                <h6 style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>
-                  🔍 IOC Indicators
-                  <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-                    ({finding.ioc_indicators.length})
-                  </span>
-                </h6>
-              </div>
-              <div className="card-body" style={{ padding: '12px 20px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {finding.ioc_indicators.map((ioc, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, background: 'var(--teal-muted)', color: 'var(--teal)', padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', flexShrink: 0 }}>
-                        {ioc.type}
-                      </span>
-                      <span className="font-mono" style={{ fontSize: 12, color: 'var(--text-primary)', flex: 1, wordBreak: 'break-all' }}>
-                        {ioc.value}
-                      </span>
-                      {ioc.description && (
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
-                          {ioc.description}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Recommendations */}
-          {finding.recommendations && (
-            <div className="card mb-3">
-              <div className="card-header">
-                <h6 style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>📝 Recommendations</h6>
-              </div>
-              <div className="card-body">
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap' }}>
-                  {finding.recommendations}
+        <div style={{ flex: '1 1 65%', minWidth: '320px', padding: 0 }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border-subtle)', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+            <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: 32 }}>
+              
+              {/* Description */}
+              <div>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Description
+                </h3>
+                <p style={{ color: 'var(--text-primary)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap', fontSize: 15 }}>
+                  {finding.description}
                 </p>
               </div>
+
+              {/* MITRE ATT&CK */}
+              {(finding.mitre_tactic || finding.mitre_technique) && (
+                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 32 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    MITRE ATT&CK
+                  </h3>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    {finding.mitre_tactic && (
+                      <div style={{ background: 'var(--bg-input)', padding: '10px 16px', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>TACTIC</span>
+                        <span style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600 }}>{finding.mitre_tactic}</span>
+                      </div>
+                    )}
+                    {finding.mitre_technique && (
+                      <div style={{ background: 'var(--bg-input)', padding: '10px 16px', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>TECHNIQUE</span>
+                        <a
+                          href={`https://attack.mitre.org/techniques/${finding.mitre_technique.split(' ')[0]}/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono"
+                          style={{ color: 'var(--teal)', fontSize: 14, textDecoration: 'none', fontWeight: 600 }}
+                        >
+                          {finding.mitre_technique} ↗
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* IOC Indicators */}
+              {finding.ioc_indicators && finding.ioc_indicators.length > 0 && (
+                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 32 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    IOC Indicators
+                    <span style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', padding: '2px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600 }}>
+                      {finding.ioc_indicators.length}
+                    </span>
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {finding.ioc_indicators.map((ioc, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 12 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', width: 60, textTransform: 'uppercase' }}>
+                          {ioc.type}
+                        </span>
+                        <span className="font-mono" style={{ fontSize: 14, color: 'var(--text-primary)', flex: 1, wordBreak: 'break-all' }}>
+                          {ioc.value}
+                        </span>
+                        {ioc.description && (
+                          <span style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {ioc.description}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {finding.recommendations && (
+                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 32 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Recommendations
+                  </h3>
+                  <div style={{ padding: '16px 20px', background: 'var(--bg-input)', borderRadius: 12, borderLeft: '3px solid var(--success)' }}>
+                    <p style={{ color: 'var(--text-primary)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap', fontSize: 15 }}>
+                      {finding.recommendations}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Sidebar */}
-        <div className="col-12 col-xl-4">
-          {/* Meta */}
-          <div className="card mb-3">
-            <div className="card-header">
-              <h6 style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Details</h6>
-            </div>
-            <div className="card-body" style={{ padding: '16px 20px' }}>
+        <div style={{ flex: '1 1 30%', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Details Panel */}
+          <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: '24px', border: '1px solid var(--border-subtle)' }}>
+            <h4 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 20px 0' }}>Details</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
                 { label: 'Finding #', value: <span className="font-mono" style={{ color: 'var(--teal)' }}>{finding.finding_number}</span> },
                 { label: 'Severity', value: <SeverityBadge severity={finding.severity} /> },
                 { label: 'Status', value: <FindingStatusBadge status={finding.status} /> },
-                { label: 'Category', value: finding.category ? finding.category.replace('_', ' ') : '—' },
-                { label: 'Case', value: finding.case ? <Link to={`/cases/${finding.case_id}`} style={{ color: 'var(--teal)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{(finding.case as any).case_number}</Link> : '—' },
-                { label: 'Evidence', value: finding.evidence ? <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{(finding.evidence as any).original_file_name}</span> : '—' },
-                { label: 'Created', value: format(new Date(finding.created_at), 'PPP') },
-                { label: 'Updated', value: format(new Date(finding.updated_at), 'PPP') },
-              ].map(({ label, value }) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{value}</span>
+                { label: 'Category', value: <span style={{ textTransform: 'capitalize', color: 'var(--text-primary)' }}>{finding.category ? finding.category.replace('_', ' ') : '—'}</span> },
+                { label: 'Case', value: finding.case ? <Link to={`/cases/${finding.case_id}`} style={{ color: 'var(--teal)', fontFamily: 'var(--font-mono)', fontSize: 14, textDecoration: 'none' }} title={(finding.case as any).case_number}>{(finding.case as any).case_number}</Link> : '—' },
+                { label: 'Evidence', value: finding.evidence ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', overflow: 'hidden' }}>
+                    <span style={{ fontSize: 14, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={(finding.evidence as any).file_name}>{(finding.evidence as any).file_name}</span>
+                    {(finding.evidence as any).storage_path && (
+                      <button
+                        onClick={() => handleDownloadEvidence((finding.evidence as any).storage_path, (finding.evidence as any).file_name)}
+                        style={{ background: 'var(--bg-input)', border: 'none', padding: '4px 8px', color: 'var(--teal)', cursor: 'pointer', fontSize: 12, borderRadius: 6, flexShrink: 0, fontWeight: 500 }}
+                        title="Download Evidence"
+                      >
+                        Get
+                      </button>
+                    )}
+                  </div>
+                ) : '—' },
+                { label: 'Created', value: <span style={{ color: 'var(--text-primary)' }}>{format(new Date(finding.created_at), 'PPP')}</span> },
+                { label: 'Updated', value: <span style={{ color: 'var(--text-primary)' }}>{format(new Date(finding.updated_at), 'PPP')}</span> },
+              ].map(({ label, value }, i) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: i !== 7 ? 12 : 0, borderBottom: i !== 7 ? '1px solid var(--border-subtle)' : 'none' }}>
+                  <span style={{ fontSize: 14, color: 'var(--text-muted)', flexShrink: 0 }}>{label}</span>
+                  <div style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'right', maxWidth: '65%', display: 'flex', justifyContent: 'flex-end', overflow: 'hidden' }}>
+                    {value}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Quick Status Change */}
-          <div className="card mb-3">
-            <div className="card-header">
-              <h6 style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Update Status</h6>
-            </div>
-            <div className="card-body" style={{ padding: '12px 16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {FINDING_STATUSES.map((s) => (
+          {/* Update Status Panel */}
+          <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: '24px', border: '1px solid var(--border-subtle)' }}>
+            <h4 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 16px 0' }}>Update Status</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {FINDING_STATUSES.map((s) => {
+                const isActive = finding.status === s.value;
+                return (
                   <button
                     key={s.value}
                     type="button"
                     onClick={() => updateStatusMutation.mutate(s.value as Finding['status'])}
-                    disabled={finding.status === s.value || updateStatusMutation.isPending}
+                    disabled={isActive || updateStatusMutation.isPending}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      border: `1px solid ${finding.status === s.value ? s.color + '44' : 'var(--border-subtle)'}`,
-                      background: finding.status === s.value ? `${s.color}18` : 'transparent',
-                      color: finding.status === s.value ? s.color : 'var(--text-secondary)',
-                      cursor: finding.status === s.value ? 'default' : 'pointer',
-                      fontSize: 12,
-                      fontWeight: finding.status === s.value ? 700 : 400,
-                      transition: 'var(--transition)',
+                      justifyContent: 'space-between',
+                      padding: '10px 16px',
+                      borderRadius: 10,
+                      border: 'none',
+                      background: isActive ? `${s.color}15` : 'var(--bg-input)',
+                      color: isActive ? s.color : 'var(--text-primary)',
+                      cursor: isActive ? 'default' : 'pointer',
+                      fontSize: 14,
+                      fontWeight: isActive ? 600 : 400,
+                      transition: 'all 0.2s ease',
                     }}
                   >
-                    {finding.status === s.value && <span>✓</span>}
                     {s.label}
+                    {isActive && <span style={{ fontSize: 16 }}>✓</span>}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Tags */}
+          {/* Tags Panel */}
           {finding.tags.length > 0 && (
-            <div className="card">
-              <div className="card-header">
-                <h6 style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Tags</h6>
-              </div>
-              <div className="card-body">
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {finding.tags.map((tag) => (
-                    <span key={tag} style={{ background: 'var(--purple-muted)', color: 'var(--purple)', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, border: '1px solid rgba(139,92,246,0.2)' }}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+            <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: '24px', border: '1px solid var(--border-subtle)' }}>
+              <h4 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 16px 0' }}>Tags</h4>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {finding.tags.map((tag) => (
+                  <span key={tag} style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500 }}>
+                    #{tag}
+                  </span>
+                ))}
               </div>
             </div>
           )}

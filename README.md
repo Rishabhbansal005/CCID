@@ -1,69 +1,70 @@
 # 🔍 Cyber Crime Investigation Dashboard (CCID)
 
-A digital forensics and cybercrime investigation platform for investigators to manage cases, evidence, findings, timelines, risk assessments, and reports.
+A modern, enterprise-grade digital forensics and cybercrime investigation platform designed for investigators to efficiently manage cases, analyze digital evidence, and generate comprehensive intelligence reports.
 
-## Tech Stack
+## 🌟 Project Overview
+
+The Cyber Crime Investigation Dashboard (CCID) streamlines the Digital Forensics and Incident Response (DFIR) workflow. It bridges the gap between raw forensic artifacts and actionable intelligence by providing automated parsers, a multi-source correlation engine, and a unified timeline to reconstruct cyberattacks.
+
+### Core Capabilities
+
+* **Evidence Management**: Secure uploading of forensic artifacts (PCAP, EVTX, SQLite, LNK, memory dumps) directly to cloud storage with built-in chain of custody tracking.
+* **Automated Forensic Analysis**: 
+  * **Network Forensics**: Parses `.pcap` files using Wireshark/tshark to extract conversations, DNS queries, and suspicious indicators.
+  * **Event Log Forensics**: Parses Windows `.evtx` files to extract logon events, PowerShell execution, and security anomalies.
+  * **Browser Forensics**: Parses Chrome/Edge `History` (SQLite) to extract search terms, downloads, and malicious URLs.
+  * **USB Forensics**: Parses `SYSTEM.hive` and `.lnk` files to reconstruct physical drive connection histories.
+* **Correlation Engine**: Automatically cross-references Indicators of Compromise (IOCs) such as IPs, Domains, and Hashes across multiple evidence sources to build Attack Chains and automatically generate high-confidence findings.
+* **Investigation Intelligence**: Visualizes complex attacks using interactive graph networks and chronological timelines.
+* **Automated Reporting**: Generates downloadable, executive-ready PDF reports containing case summaries, risk assessments, and chain-of-custody logs.
+
+---
+
+## 🛠 Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, TypeScript, Vite, React Router v6, Bootstrap 5 |
-| Backend | FastAPI (Python 3.11), Uvicorn |
-| Database & Auth | Supabase (PostgreSQL + Auth + Storage) |
-| PDF Reports | ReportLab (Python) |
-| Future Tools | Volatility 3, Wireshark, Autopsy, FTK Imager |
+| **Frontend** | React 18, TypeScript, Vite, React Router v6, Vanilla CSS |
+| **Backend** | FastAPI (Python 3.11), Uvicorn, Pydantic |
+| **Forensic Parsers** | `pyshark` (Network), `Evtx` (Event Logs), `python-registry` (USB) |
+| **Database & Auth** | Supabase (PostgreSQL + Authentication + Storage) |
 
-## Project Structure
+---
 
-```
-CBS/
-├── frontend/          # React + TypeScript (Vite)
-├── backend/           # FastAPI Python backend
-├── supabase/          # SQL migrations + RLS policies
-└── README.md
-```
+## 🚀 Getting Started
 
-## Quick Start
+Follow these steps to run the CCID platform locally.
 
 ### Prerequisites
-- Node.js 18+
-- Python 3.11+
-- Supabase account + project
+* Node.js 18+
+* Python 3.11+
+* Wireshark / `tshark` installed on your host machine (required for network analysis)
+* A [Supabase](https://supabase.com) account and project
 
 ### 1. Supabase Setup
-
-1. Create a new Supabase project at https://supabase.com
-2. Run the SQL migrations in order from `supabase/migrations/`
-3. Run `supabase/rls_policies.sql` for Row Level Security
-4. Run `supabase/storage_setup.sql` to configure the `forensic_uploads` bucket
+1. Create a new Supabase project.
+2. In the Supabase SQL Editor, run all the migration files found in the `supabase/migrations/` directory in numerical order (from `001_` to `014_`).
+3. Create a Storage Bucket named `forensic_uploads` and ensure it is set to "Public" (or configure your RLS policies accordingly).
 
 ### 2. Backend Setup
+The FastAPI backend handles all forensic parsing and heavy data processing.
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
-cp .env.example .env      # Fill in your Supabase credentials
-uvicorn app.main:app --reload --port 8000
+
+# Set up environment variables
+cp .env.example .env
 ```
 
-API docs available at: http://localhost:8000/docs
-
-### 3. Frontend Setup
-
-```bash
-cd frontend
-npm install
-cp .env.example .env.local   # Fill in your Supabase + API credentials
-npm run dev
-```
-
-App available at: http://localhost:5173
-
-## Environment Variables
-
-### Backend (`backend/.env`)
-```
+**Configure `backend/.env`:**
+```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_ANON_KEY=your-anon-key
@@ -71,41 +72,48 @@ SECRET_KEY=your-jwt-secret
 CORS_ORIGINS=http://localhost:5173
 ```
 
-### Frontend (`frontend/.env.local`)
+**Run the backend:**
+```bash
+uvicorn app.main:app --reload --port 8000
 ```
+> *API documentation (Swagger UI) is automatically available at `http://localhost:8000/docs`.*
+
+### 3. Frontend Setup
+The Vite + React frontend provides the interactive investigator dashboard.
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+```
+
+**Configure `frontend/.env.local`:**
+```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 VITE_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
-## Modules
+**Run the frontend:**
+```bash
+npm run dev
+```
+> *The dashboard will be available at `http://localhost:5173`.*
 
-| Module | Status | Description |
-|---|---|---|
-| Authentication | ✅ | Supabase Auth (email/password), role-based |
-| Dashboard | ✅ | Stats, recent activity, quick actions |
-| Case Management | ✅ | Full CRUD, status/priority tracking |
-| Evidence | ✅ | Upload to Supabase Storage, chain of custody |
-| Findings | 🔜 | Linked to cases/evidence, severity tags |
-| Timeline | 🔜 | Chronological event visualization |
-| Risk Assessment | 🔜 | 5×5 risk matrix per case |
-| PDF Reports | 🔜 | Backend-generated via ReportLab |
+---
 
-## Forensic Tool Integration (Future)
+## 📖 Quick Usage Guide
 
-Placeholder adapters are ready in `backend/app/services/forensics/`:
+1. **Create a Case**: Log into the dashboard and click `+ New Case`. Fill out the investigation details.
+2. **Upload Evidence**: Navigate to the case, go to the **Evidence** tab, and upload a raw artifact (e.g., `sample_logon.evtx` or `network_capture.pcap`).
+3. **Analyze**: Click the **Analyze** button next to your uploaded evidence. The FastAPI backend will parse the file in the background and extract timelines and findings.
+4. **Run Correlation Engine**: Go to the **Correlations** tab and click `▶ Run Engine`. The system will map overlapping IOCs across all your analyzed evidence to build an Attack Chain graph.
+5. **Generate Report**: Once the investigation is complete, go to the **Reports** tab and generate an end-to-end PDF report of the case.
 
-| Tool | Adapter | Status |
-|---|---|---|
-| Volatility 3 | `volatility_adapter.py` | 🔌 Stub |
-| Wireshark | `wireshark_adapter.py` | 🔌 Stub |
-| Autopsy | `autopsy_adapter.py` | 🔌 Stub |
-| FTK Imager | `ftk_adapter.py` | 🔌 Stub |
+---
 
-## User Roles
-
-| Role | Permissions |
-|---|---|
-| `admin` | Full access — manage users, all cases |
-| `investigator` | Create/edit cases, upload evidence, write reports |
-| `viewer` | Read-only access to assigned cases |
+*Designed and built for Digital Forensics and Incident Response (DFIR) professionals.*
