@@ -3,9 +3,13 @@ FastAPI Backend Application
 """
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.api.v1.router import api_router
 
@@ -15,6 +19,9 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# ── Rate limiter (shared across the whole app) ────────────────────────────────
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -39,6 +46,10 @@ app = FastAPI(
     openapi_url="/openapi.json",
     lifespan=lifespan,
 )
+
+# Attach the limiter to the app state so slowapi middleware can find it
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ============================================================
 # Middleware

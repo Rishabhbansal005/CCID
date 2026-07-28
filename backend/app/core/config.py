@@ -42,6 +42,18 @@ class Settings(BaseSettings):
     autopsy_api_url: str = "http://localhost:9999/api"
     ftk_api_url: str = "http://localhost:8888/api"
 
+    # ── Email / SMTP ─────────────────────────────────────────────────────────
+    # Store these in backend/.env — NEVER expose to the frontend.
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""            # e.g. your-gmail@gmail.com
+    smtp_password: str = ""        # Gmail App Password (not login password)
+    notify_email: str = ""         # Destination address for notifications
+    smtp_from_name: str = "CCID Platform"
+
+    # ── Contact Form Rate Limiting ────────────────────────────────────────────
+    rate_limit_contact: str = "5/minute"
+
 
 @lru_cache()
 def get_settings() -> Settings:

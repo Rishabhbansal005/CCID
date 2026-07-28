@@ -97,9 +97,10 @@ const NAV_ITEMS: NavItem[] = [
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  onContactOpen: () => void;
 }
 
-export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ collapsed, onToggle, onContactOpen }: SidebarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -184,6 +185,46 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </div>
         ))}
       </nav>
+
+      {/* Contact / Support */}
+      <div style={{ padding: collapsed ? '4px 8px' : '4px 12px', marginBottom: '4px' }}>
+        <button
+          onClick={onContactOpen}
+          title={collapsed ? 'Contact & Support' : undefined}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: collapsed ? '8px' : '8px 12px',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            background: 'none',
+            border: '1px solid var(--border-subtle, #2a2d3e)',
+            borderRadius: 'var(--radius-sm, 6px)',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 500,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.1)';
+            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(99,102,241,0.4)';
+            (e.currentTarget as HTMLElement).style.color = '#818cf8';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.background = 'none';
+            (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle, #2a2d3e)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
+          }}
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="15" height="15" style={{ flexShrink: 0 }}>
+            <path d="M2 6l6 4 6-4" strokeLinecap="round" />
+            <rect x="1" y="3.5" width="14" height="9" rx="2" />
+          </svg>
+          {!collapsed && <span>Contact &amp; Support</span>}
+        </button>
+      </div>
 
       {/* User Footer */}
       <div className="sidebar-footer">

@@ -3,7 +3,7 @@ from app.api.v1.endpoints import (
     cases, evidence, findings, auth, 
     timeline, reports, risk, network_analysis, memory_analysis, dashboard,
     browser_analysis, usb_analysis, correlations, enrichment,
-    event_log_analysis, suspects
+    event_log_analysis, contact_submissions, suspects
 )
 from app.services.forensics import VolatilityAdapter, WiresharkAdapter, AutopsyAdapter, FTKAdapter
 
@@ -24,6 +24,7 @@ api_router.include_router(dashboard.router)
 api_router.include_router(correlations.router)
 api_router.include_router(enrichment.router)
 api_router.include_router(event_log_analysis.router)
+api_router.include_router(contact_submissions.router)
 api_router.include_router(suspects.router)
 
 
