@@ -26,7 +26,8 @@ import NewCase from '@/pages/cases/NewCase';
 import EvidenceUpload from '@/pages/evidence/EvidenceUpload';
 import EvidenceDetail from '@/pages/evidence/EvidenceDetail';
 
-
+// OSINT module
+import OsintDashboard from '@/pages/osint/OsintDashboard';
 // Findings module (fully implemented)
 import FindingsList from '@/pages/findings/FindingsList';
 import FindingDetail from '@/pages/findings/FindingDetail';
@@ -81,6 +82,9 @@ function App() {
                 <Route path="/evidence" element={<EvidenceUpload />} />
                 <Route path="/evidence/upload" element={<EvidenceUpload />} />
                 <Route path="/evidence/:id" element={<EvidenceDetail />} />
+
+                {/* OSINT */}
+                <Route path="/osint" element={<OsintDashboard />} />
 
                 {/* Findings */}
                 <Route path="/findings" element={<FindingsList />} />

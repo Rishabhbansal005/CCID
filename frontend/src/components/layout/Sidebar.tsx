@@ -89,6 +89,12 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/cases',      icon: Icons.cases,     label: 'Cases',            section: 'INVESTIGATION' },
   { path: '/evidence',   icon: Icons.evidence,  label: 'Evidence',         section: 'INVESTIGATION' },
   { path: '/findings',   icon: Icons.findings,  label: 'Findings',         section: 'INVESTIGATION' },
+  { path: '/osint',      icon: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <circle cx="8" cy="8" r="6" />
+      <path d="M2 8h12M8 2a9 9 0 013 6 9 9 0 01-3 6 9 9 0 01-3-6 9 9 0 013-6" />
+    </svg>
+  ), label: 'OSINT', section: 'ANALYSIS' },
   { path: '/timeline',   icon: Icons.timeline,  label: 'Timeline',         section: 'ANALYSIS' },
   { path: '/risk',       icon: Icons.risk,      label: 'Risk Assessment',  section: 'ANALYSIS' },
   { path: '/reports',    icon: Icons.reports,   label: 'Reports',          section: 'OUTPUT' },
