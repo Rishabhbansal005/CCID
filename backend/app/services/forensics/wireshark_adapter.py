@@ -40,8 +40,13 @@ class WiresharkAdapter:
             def _parse():
                 asyncio.set_event_loop(asyncio.new_event_loop())
                 
-                # Check where tshark is for macOS
-                tshark_path = "/Applications/Wireshark.app/Contents/MacOS/tshark"
+                # Check where tshark is based on OS defaults
+                import sys
+                if sys.platform.startswith("win"):
+                    tshark_path = r"C:\Program Files\Wireshark\tshark.exe"
+                else:
+                    tshark_path = "/Applications/Wireshark.app/Contents/MacOS/tshark"
+                
                 if not os.path.exists(tshark_path):
                     import shutil
                     tshark_path = shutil.which("tshark") or "tshark"

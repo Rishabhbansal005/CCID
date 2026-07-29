@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     # ── Contact Form Rate Limiting ────────────────────────────────────────────
     rate_limit_contact: str = "5/minute"
 
+    # OSINT Integration
+    alienvault_otx_key: str = ""
+
 
 @lru_cache()
 def get_settings() -> Settings:
