@@ -594,6 +594,22 @@ export default function Dashboard() {
                   </span>
                 </div>
               ))}
+              <div className="section-heading" style={{ marginTop: 24 }}>Cyber Police Locations</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {CYBER_POLICE_LOCATIONS.map((loc) => (
+                  <div key={loc.name} style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                      <span style={{ color: '#f1f5f9', fontWeight: 500, fontSize: 12.5 }}>{loc.name}</span>
+                      <span className="sys-status-dot ok" style={{ fontSize: 10 }}>
+                        <svg viewBox="0 0 8 8" width="5" height="5"><circle cx="4" cy="4" r="3.5" fill="currentColor" /></svg>
+                        {loc.status}
+                      </span>
+                    </div>
+                    <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>{loc.address}</div>
+                    <div style={{ color: '#818cf8', fontSize: 11, fontFamily: 'var(--font-mono)' }}>📞 {loc.phone}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -621,3 +637,10 @@ function getTimeGreeting() {
   if (h < 17) return 'Good afternoon';
   return 'Good evening';
 }
+
+const CYBER_POLICE_LOCATIONS = [
+  { name: 'National Cyber HQ', address: 'Block 4, CGO Complex, New Delhi', phone: '011-2436-1234', status: 'Online' },
+  { name: 'Cyber Crime Cell (Mumbai)', address: 'BKC, Bandra East, Mumbai', phone: '022-2650-4567', status: 'Online' },
+  { name: 'Cyber Station (Bengaluru)', address: 'Infantry Road, Bengaluru', phone: '080-2294-3232', status: 'Online' },
+  { name: 'Forensics Lab (Hyderabad)', address: 'Red Hills, Nampally, Hyderabad', phone: '040-2323-8899', status: 'Online' },
+];
