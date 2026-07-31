@@ -35,12 +35,20 @@ async def run_network_analysis_task(evidence_id: str, case_id: str, download_url
         db.table("network_analysis_results").update({"analysis_status": "analyzing"}).eq("evidence_id", evidence_id).execute()
         
         # Download
-        logger.info(f"Downloading PCAP for {evidence_id}")
+        logger.info(f"[NETWORK] Downloading PCAP for evidence {evidence_id}")
         temp_path = await download_file_to_temp(download_url)
+        file_size = os.path.getsize(temp_path) if temp_path and os.path.exists(temp_path) else 0
+        logger.info(f"[NETWORK] Downloaded to {temp_path}, size={file_size} bytes")
+        
+        if file_size < 24:
+            raise ValueError(f"Downloaded file is too small ({file_size} bytes) — likely a bad URL or storage error")
         
         # Analyze
+        logger.info(f"[NETWORK] Starting tshark analysis on {temp_path}")
         adapter = WiresharkAdapter()
         results = await adapter.analyze_pcap(temp_path)
+        logger.info(f"[NETWORK] Analysis done: {len(results['conversations'])} conversations, {len(results['dns_queries'])} DNS queries")
+
         
         # Save results
         db.table("network_analysis_results").update({
@@ -102,8 +110,16 @@ async def run_network_analysis_task(evidence_id: str, case_id: str, download_url
         logger.info(f"Network analysis completed for {evidence_id}")
 
     except Exception as e:
-        logger.error(f"Network analysis failed for {evidence_id}: {e}")
-        db.table("network_analysis_results").update({"analysis_status": "failed"}).eq("evidence_id", evidence_id).execute()
+        import traceback
+        err_msg = str(e)
+        logger.error(f"[NETWORK] FAILED for evidence {evidence_id}: {type(e).__name__}: {err_msg}")
+        logger.error(f"[NETWORK] Full traceback:\n{traceback.format_exc()}")
+        db.table("network_analysis_results").update({
+            "analysis_status": "failed",
+            "error_message": err_msg,
+            "updated_at": datetime.utcnow().isoformat()
+        }).eq("evidence_id", evidence_id).execute()
+        db.table("evidence").update({"processing_status": "error"}).eq("id", evidence_id).execute()
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)

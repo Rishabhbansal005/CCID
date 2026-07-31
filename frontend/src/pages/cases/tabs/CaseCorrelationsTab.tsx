@@ -52,22 +52,25 @@ const CaseCorrelationsTab: React.FC<CaseCorrelationsTabProps> = ({ caseId }) => 
     queryKey: ['correlations', caseId],
     queryFn: async () => {
       const res = await apiClient.get(`/correlations/case/${caseId}`);
-      return res.data || [];
+      return (res.data || []) as Correlation[];
     },
     staleTime: 0,
-    refetchInterval: (data) => (!data || (data as Correlation[]).length === 0 ? 5000 : false),
+    refetchInterval: (query) => {
+      const d = (query as unknown as { state: { data: Correlation[] | undefined } }).state?.data;
+      return !d || d.length === 0 ? 5000 : false;
+    },
   });
 
   const { data: graphData, isLoading: isLoadingGraph, refetch: refetchGraph } = useQuery<GraphData>({
     queryKey: ['correlation_graph', caseId],
     queryFn: async () => {
       const res = await apiClient.get(`/correlations/case/${caseId}/graph`);
-      return res.data;
+      return (res.data || { nodes: [], edges: [] }) as GraphData;
     },
     staleTime: 0,
-    refetchInterval: (data) => {
-      const gd = data as GraphData | undefined;
-      return (!gd || gd.nodes.length === 0) ? 5000 : false;
+    refetchInterval: (query) => {
+      const gd = (query as unknown as { state: { data: GraphData | undefined } }).state?.data;
+      return (!gd || (gd.nodes || []).length === 0) ? 5000 : false;
     },
   });
 

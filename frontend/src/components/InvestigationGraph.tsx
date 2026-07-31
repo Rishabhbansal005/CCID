@@ -106,28 +106,33 @@ const InvestigationGraph: React.FC<InvestigationGraphProps> = ({ data }) => {
     let ex = 80, ix = 80, fx = 80;
     const ey = 60, iy = 240, fy = 420;
 
-    return data.nodes.map((node) => {
+    const nodes = data?.nodes || [];
+    return nodes.map((node) => {
       let position = { x: 0, y: 0 };
       if (node.type === 'evidenceNode') { position = { x: ex, y: ey }; ex += 280; }
       else if (node.type === 'iocNode') { position = { x: ix, y: iy }; ix += 320; }
       else                              { position = { x: fx, y: fy }; fx += 280; }
       return { ...node, position };
     });
-  }, [data.nodes]);
+  }, [data?.nodes]);
 
-  const initialEdges = useMemo(() => data.edges.map(e => ({
-    ...e,
-    type: 'smoothstep',
-    animated: true,
-    style: { strokeWidth: 2, stroke: 'rgba(0,212,255,0.5)' },
-    labelStyle: { fill: '#94a3b8', fontWeight: 700, fontSize: 11 },
-    labelBgStyle: { fill: '#0d1117', fillOpacity: 0.9 },
-    labelBgPadding: [6, 4] as [number, number],
-    labelBgBorderRadius: 4,
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(0,212,255,0.5)' },
-  })), [data.edges]);
+  const initialEdges = useMemo(() => {
+    const edges = data?.edges || [];
+    return edges.map(e => ({
+      ...e,
+      type: 'smoothstep',
+      animated: true,
+      style: { strokeWidth: 2, stroke: 'rgba(0,212,255,0.5)' },
+      labelStyle: { fill: '#94a3b8', fontWeight: 700, fontSize: 11 },
+      labelBgStyle: { fill: '#0d1117', fillOpacity: 0.9 },
+      labelBgPadding: [6, 4] as [number, number],
+      labelBgBorderRadius: 4,
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(0,212,255,0.5)' },
+    }));
+  }, [data?.edges]);
 
-  if (!data.nodes || data.nodes.length === 0) {
+  const nodes = data?.nodes || [];
+  if (nodes.length === 0) {
     return (
       <div style={{
         height: '500px', display: 'flex', flexDirection: 'column',
