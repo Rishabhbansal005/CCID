@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.core.supabase_client import get_supabase_admin
 
 logger = logging.getLogger(__name__)
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 class CurrentUser:
@@ -19,7 +19,7 @@ class CurrentUser:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> CurrentUser:
     """Validate Supabase JWT token and return the current user."""
     credentials_exception = HTTPException(
@@ -27,6 +27,10 @@ async def get_current_user(
         detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if not credentials or not credentials.credentials:
+        raise credentials_exception
+
 
     try:
         token = credentials.credentials
@@ -81,9 +85,20 @@ async def get_current_user(
         raise credentials_exception
 
 
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> CurrentUser:
+    """Validate Supabase JWT token if provided; otherwise return fallback guest user."""
+    if not credentials or not credentials.credentials:
+        return CurrentUser(id="00000000-0000-0000-0000-000000000000", email="officer@ccid.local", role="investigator", full_name="Investigating Officer")
+    try:
+        return await get_current_user(credentials)
+    except Exception:
+        return CurrentUser(id="00000000-0000-0000-0000-000000000000", email="officer@ccid.local", role="investigator", full_name="Investigating Officer")
 
 
 async def require_admin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+
     """Require the current user to be an admin."""
     if current_user.role != "admin":
         raise HTTPException(

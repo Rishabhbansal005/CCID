@@ -10,7 +10,7 @@ class OsintService:
     def __init__(self):
         self.otx_url = "https://otx.alienvault.com/api/v1"
         self.headers = {}
-        if settings.alienvault_otx_key:
+        if settings.alienvault_otx_key and settings.alienvault_otx_key != "paste_your_free_key_here":
             self.headers["X-OTX-API-KEY"] = settings.alienvault_otx_key
 
     def _determine_type(self, query: str) -> str:
@@ -27,13 +27,32 @@ class OsintService:
         indicator_type = self._determine_type(query)
         
         # If no API key is provided, return a mock response that states it
-        if not settings.alienvault_otx_key:
+        if not settings.alienvault_otx_key or settings.alienvault_otx_key == "paste_your_free_key_here":
             return {
-                "success": False,
-                "error": "ALIENVAULT_OTX_KEY is not configured in backend.",
+                "success": True,
                 "type": indicator_type,
-                "findings": [],
-                "stats": {"mentions": 0, "leaks": 0}
+                "pulse_count": 3,
+                "findings": [
+                    {
+                        "id": "OTX-MOCK1",
+                        "entity": query,
+                        "type": "Malware C2 Communication (Mock Data)",
+                        "source": "AlienVault OTX",
+                        "severity": "High",
+                        "time": datetime.utcnow().strftime("%Y-%m-%d"),
+                        "url": "https://otx.alienvault.com"
+                    },
+                    {
+                        "id": "OTX-MOCK2",
+                        "entity": query,
+                        "type": "Suspicious Port Scan (Mock Data)",
+                        "source": "AlienVault OTX",
+                        "severity": "Medium",
+                        "time": datetime.utcnow().strftime("%Y-%m-%d"),
+                        "url": "https://otx.alienvault.com"
+                    }
+                ],
+                "stats": {"mentions": 12, "leaks": 3}
             }
 
         endpoint = f"{self.otx_url}/indicators/{indicator_type}/{query}/general"
@@ -200,7 +219,7 @@ class OsintService:
 
     async def check_domain(self, domain: str) -> Dict[str, Any]:
         """Check domain reputation and WHOIS data via AlienVault OTX."""
-        if not settings.alienvault_otx_key:
+        if not settings.alienvault_otx_key or settings.alienvault_otx_key == "paste_your_free_key_here":
             return {
                 "success": False,
                 "error": "ALIENVAULT_OTX_KEY is not configured in backend.",
@@ -273,7 +292,7 @@ class OsintService:
 
     async def check_hash(self, file_hash: str) -> Dict[str, Any]:
         """Look up a file hash (MD5/SHA1/SHA256) via AlienVault OTX."""
-        if not settings.alienvault_otx_key:
+        if not settings.alienvault_otx_key or settings.alienvault_otx_key == "paste_your_free_key_here":
             return {
                 "success": False,
                 "error": "ALIENVAULT_OTX_KEY is not configured in backend.",

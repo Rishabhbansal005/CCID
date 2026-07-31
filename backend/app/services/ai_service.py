@@ -106,7 +106,13 @@ def is_cyber_investigation_query(question: str) -> bool:
         "port", "scan", "firewall", "siem", "fir", "65b", "it act", "legal", "warrant", "bns", "bnss",
         "police", "officer", "agent", "triage", "breach", "exfiltration", "ransomware", "trojan",
         "backdoor", "exploit", "indicator", "overview", "active", "open", "closed", "critical",
-        "high", "medium", "low", "help", "hi", "hello", "hey", "what can you do", "who are you"
+        "high", "medium", "low", "help", "hi", "hello", "hey", "what can you do", "who are you",
+        "fraud", "scam", "chori", "paisa", "bank", "account", "kya karu", "kaise", "help me",
+        "whatsapp", "instagram", "facebook", "twitter", "social media", "telegram", "snapchat",
+        "file", "link", "message", "sms", "otp", "password", "login", "profile", "unknown", "unkown",
+        "fake", "spam", "stolen", "lost", "tracker", "location", "virus", "antivirus", "awareness",
+        "safety", "secure", "protect", "privacy", "data", "leak", "dark web", "deep web",
+        "internet", "online", "wifi", "bluetooth", "usb", "drive", "email", "gmail", "phish"
     ]
     
     return any(kw in q for kw in cyber_keywords)
@@ -342,7 +348,7 @@ class AIService:
         if not is_cyber_investigation_query(question):
             return {
                 "success": True,
-                "answer": "I am CCID Dashboard Copilot, specialized exclusively in analyzing your CCID Investigation Dashboard, case data, evidence, cybercrime investigation, and digital forensics. Please ask a question related to your active cases, evidence, or cybercrime investigation.",
+                "answer": "I am CCID Cyber Copilot. I specialize in Cyber Security, Digital Forensics, and Incident Response. I can guide you if you have faced a cyber attack, phone hack, or financial fraud. Please ask a question related to cyber security, active cases, or digital investigations.",
                 "status": "offtopic_blocked",
                 "provider_used": "ccid-guardrail-filter"
             }
@@ -350,15 +356,17 @@ class AIService:
         dashboard_telemetry = get_live_dashboard_context(case_id)
 
         system_prompt = (
-            "You are CCID Dashboard Copilot, an AI assistant strictly dedicated to analyzing and answering questions "
-            "about the user's Cyber Crime Investigation Dashboard (CCID), active cases, evidence items, suspects, forensic findings, and system metrics.\n\n"
+            "You are CCID Cyber Copilot, an elite AI Cyber Security, Incident Response, and Digital Forensics Expert.\n"
+            "Your role is two-fold:\n"
+            "1. Cyber Security Guidance (Incident Response & Awareness): Provide step-by-step, actionable, and easy-to-understand guidance for ALL types of cyber security issues, digital cyber attacks, cyber hacking, and cyber awareness (e.g., 'my phone got hacked', 'someone sent an unknown file on WhatsApp', 'ransomware attack', 'financial fraud'). ALWAYS reply in English, even if the user asks their question in another language. Guide them exactly on what steps they should take immediately to secure themselves or stay safe online.\n"
+            "2. Dashboard Analysis: Answer questions about the user's Cyber Crime Investigation Dashboard (CCID), active cases, evidence items, suspects, and system metrics based on the provided telemetry.\n\n"
             "STRICT OPERATIONAL RULES:\n"
-            "1. Ground all answers directly in the live CCID Dashboard Telemetry provided below whenever the user asks about system stats, case counts, evidence, or investigation status.\n"
-            "2. Maintain context across the conversation history so you remember previously mentioned cases, findings, and context.\n"
-            "3. Be concise, authoritative, accurate, and professional like a digital forensics intelligence analyst.\n"
-            "4. OFF-TOPIC REJECTION RULE: If the user asks non-investigative, off-topic questions completely unrelated to the CCID dashboard, digital forensics, or cybercrime investigation "
-            "(e.g. general trivia, movies, recipes, writing non-forensic software, general chitchat), REFUSE politely with:\n"
-            "   'I am CCID Dashboard Copilot, specialized exclusively in analyzing your CCID Investigation Dashboard, case data, evidence, and forensic findings. Please ask a question related to your active cases or dashboard metrics.'\n\n"
+            "1. ALWAYS prioritize being helpful for cyber incidents. Provide clear, numbered, prioritized steps (e.g., 1. Disconnect Internet, 2. Change Passwords, 3. Report to Cyber Police at 1930 or cybercrime.gov.in).\n"
+            "2. Be conversational and empathetic when users report an incident. Reassure them and give actionable advice.\n"
+            "3. Ground any dashboard-related answers directly in the live CCID Dashboard Telemetry provided below.\n"
+            "4. Maintain context across the conversation history.\n"
+            "5. OFF-TOPIC REJECTION RULE: If the user asks non-security, off-topic questions completely unrelated to cyber security, incident response, digital forensics, or the CCID dashboard "
+            "(e.g. general trivia, movies, recipes), REFUSE politely.\n\n"
             f"{dashboard_telemetry}"
         )
 
@@ -447,7 +455,7 @@ class AIService:
         # Check off-topic
         non_forensic_keywords = ["recipe", "movie", "song", "weather", "game", "joke", "sports", "cook", "tell me a story"]
         if any(kw in q_lower for kw in non_forensic_keywords):
-            answer = "I am CCID Dashboard Copilot, specialized exclusively in analyzing your CCID Investigation Dashboard, case data, evidence, and forensic findings. Please ask a question related to your active cases or dashboard metrics."
+            answer = "I am CCID Cyber Copilot. I specialize in Cyber Security, Digital Forensics, and Incident Response. I can guide you if you have faced a cyber attack, phone hack, or financial fraud. Please ask a question related to cyber security or dashboard metrics."
             return {
                 "success": True,
                 "answer": answer,
@@ -464,13 +472,13 @@ class AIService:
                 f"- Navigate to **Evidence Vault** to inspect hash values and artifacts.\n"
                 f"- Navigate to **Reports** tab to generate legal FIR summaries."
             )
-        elif "evidence" in q_lower or "chain" in q_lower or "seiz" in q_lower or "mobile" in q_lower:
+        elif "evidence" in q_lower or "chain" in q_lower or "seiz" in q_lower or "mobile" in q_lower or "phone" in q_lower or "hack" in q_lower:
             topic_guide = (
-                "### [SOP] Digital Evidence Preservation & Custody Protocol\n"
-                "1. **Signal Isolation**: Place mobile devices in a Faraday bag or metallic shielding immediately to prevent remote wipe commands.\n"
-                "2. **Write Blocking**: Attach physical hardware write-blockers before connecting storage media to forensic workstations.\n"
-                "3. **Hash Calculation**: Generate cryptographic hashes (SHA-256 / MD5) immediately after physical/logical acquisition.\n"
-                "4. **Chain of Custody Form**: Record Investigator ID, Date/Time, Device Serial No., and Storage Hash in accordance with ISO/IEC 27037."
+                "### [IR] Incident Response & Digital Evidence Preservation Protocol\n"
+                "1. **Isolate**: Disconnect the compromised device from all networks (WiFi, Cellular) immediately to prevent further damage or remote wipes. Place mobile devices in Airplane Mode or a Faraday bag.\n"
+                "2. **Preserve**: Do NOT reboot or shut down the device unless absolutely necessary (volatile memory will be lost). Do not attempt to 'clean' the malware yourself.\n"
+                "3. **Document**: Take photos of the compromised screen using another device. Note down any suspicious activity, timestamps, and messages.\n"
+                "4. **Report & Acquire**: Hand over the device to a digital forensics expert or law enforcement with a proper Chain of Custody form. They will create a bit-by-bit forensic image (SHA-256 verified) before any analysis begins."
             )
         elif "memory" in q_lower or "ram" in q_lower or "volatil" in q_lower:
             topic_guide = (

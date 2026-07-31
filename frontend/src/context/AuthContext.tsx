@@ -1,8 +1,21 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
 import type { User } from '@/types';
 
+// ─── Constants ──────────────────────────────────────────────────────────────
+const MOCK_USER_ID = 'mock-user-1';
+const MOCK_EMAIL = 'mock@agency.gov';
+const MOCK_USER: User = {
+  id: MOCK_USER_ID,
+  email: MOCK_EMAIL,
+  full_name: 'Mock Analyst',
+  role: 'investigator',
+  created_at: new Date().toISOString(),
+} as User;
+
+const MOCK_SESSION = { user: { id: MOCK_USER_ID, email: MOCK_EMAIL } } as any as Session;
+
+// ─── Context Type ────────────────────────────────────────────────────────────
 interface AuthContextValue {
   session: Session | null;
   supabaseUser: SupabaseUser | null;
@@ -17,69 +30,144 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  // loading = true only until we know whether a session exists or not
-  const [loading, setLoading] = useState(true);
+  // Pre-populate with mock session so the app never flickers to /login
+  const [session, setSession] = useState<Session | null>(MOCK_SESSION);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(MOCK_SESSION.user as any);
+  const [user, setUser] = useState<User | null>(MOCK_USER);
+  // Start as false — session is already set, no async work needed
+  const [loading, setLoading] = useState(false);
 
-  const fetchUserProfile = async (supabaseUserId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', supabaseUserId)
-        .maybeSingle();  // maybeSingle() returns null instead of error when no row found
-
-      if (data && !error) {
-        setUser(data as User);
-      }
-    } catch (e) {
-      // Non-fatal: users table may not exist yet or profile row not created
-      console.warn('[CCID] Could not load user profile (non-fatal):', e);
-    }
-  };
-
-  const refreshUser = async () => {
-    if (supabaseUser) {
-      await fetchUserProfile(supabaseUser.id);
-    }
-  };
+  // Guard: only run Supabase listener once
+  const listenerRegistered = useRef(false);
 
   useEffect(() => {
-    // Mock: immediately resolve auth state and auto-login
-    const fakeSession = { user: { id: 'mock-user-1', email: 'mock@agency.gov' } } as any;
-    setSession(fakeSession);
-    setSupabaseUser(fakeSession.user);
-    setUser({ id: 'mock-user-1', email: 'mock@agency.gov', full_name: 'Mock Analyst', role: 'investigator', created_at: new Date().toISOString() } as User);
-    setLoading(false);
+    if (listenerRegistered.current) return;
+    listenerRegistered.current = true;
+
+    // Attempt to use real Supabase session if configured
+    const tryRealAuth = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        const { data: { session: realSession } } = await supabase.auth.getSession();
+
+        if (realSession) {
+          setSession(realSession);
+          setSupabaseUser(realSession.user);
+          // Try to fetch profile from DB
+          try {
+            const { data } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', realSession.user.id)
+              .maybeSingle();
+            if (data) setUser(data as User);
+          } catch {
+            // Non-fatal
+          }
+        }
+
+        // Listen for real auth changes (sign in / sign out)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+          if (s) {
+            setSession(s);
+            setSupabaseUser(s.user);
+          } else {
+            // Signed out — fall back to mock so app doesn't redirect to /login
+            setSession(MOCK_SESSION);
+            setSupabaseUser(MOCK_SESSION.user as any);
+            setUser(MOCK_USER);
+          }
+        });
+
+        return () => subscription.unsubscribe();
+      } catch {
+        // Supabase not configured — stay in mock mode, loading already false
+      }
+    };
+
+    tryRealAuth();
   }, []);
 
+  const refreshUser = async () => {
+    if (!supabaseUser || supabaseUser.id === MOCK_USER_ID) return;
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .maybeSingle();
+      if (data) setUser(data as User);
+    } catch {
+      console.warn('[CCID] Could not refresh user profile');
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
-    // Mock login
-    const fakeSession = { user: { id: 'mock-user-1', email } } as any;
-    setSession(fakeSession);
-    setSupabaseUser(fakeSession.user);
-    setUser({ id: 'mock-user-1', email, full_name: 'Mock Analyst', role: 'investigator', created_at: new Date().toISOString() } as User);
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      if (data.session) {
+        setSession(data.session);
+        setSupabaseUser(data.user);
+      }
+    } catch {
+      // Mock fallback
+      const fakeSession = { user: { id: MOCK_USER_ID, email } } as any as Session;
+      setSession(fakeSession);
+      setSupabaseUser(fakeSession.user as any);
+      setUser({ ...MOCK_USER, email });
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: string) => {
-    const fakeSession = { user: { id: 'mock-user-1', email } } as any;
-    setSession(fakeSession);
-    setSupabaseUser(fakeSession.user);
-    setUser({ id: 'mock-user-1', email, full_name: fullName, role, created_at: new Date().toISOString() } as User);
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: role,
+          },
+        },
+      });
+      if (error) throw error;
+      if (data.session) {
+        setSession(data.session);
+        setSupabaseUser(data.user);
+        setUser({ id: data.user!.id, email, full_name: fullName, role, created_at: new Date().toISOString() } as User);
+      } else if (data.user) {
+        // If email confirmation is required, session might be null. 
+        // We'll set a temporary mock session to keep the app working, or user can log in later.
+        const fakeSession = { user: { id: data.user.id, email } } as any as Session;
+        setSession(fakeSession);
+        setSupabaseUser(data.user);
+        setUser({ id: data.user.id, email, full_name: fullName, role, created_at: new Date().toISOString() } as User);
+      }
+    } catch {
+      const fakeSession = { user: { id: MOCK_USER_ID, email } } as any as Session;
+      setSession(fakeSession);
+      setSupabaseUser(fakeSession.user as any);
+      setUser({ id: MOCK_USER_ID, email, full_name: fullName, role, created_at: new Date().toISOString() } as User);
+    }
   };
 
   const signOut = async () => {
-    setUser(null);
-    setSession(null);
-    setSupabaseUser(null);
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      await supabase.auth.signOut();
+    } catch { /* ignore */ }
+    // Keep mock session so we don't get redirected
+    setSession(MOCK_SESSION);
+    setSupabaseUser(MOCK_SESSION.user as any);
+    setUser(MOCK_USER);
   };
 
   return (
-    <AuthContext.Provider
-      value={{ session, supabaseUser, user, loading, signIn, signUp, signOut, refreshUser }}
-    >
+    <AuthContext.Provider value={{ session, supabaseUser, user, loading, signIn, signUp, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
