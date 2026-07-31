@@ -24,3 +24,10 @@ coverage/
 .pytest_cache/
 htmlcov/
 *.pdf
+# ML model binaries
+*.joblib
+*.pkl
+# Large training data files
+backend/data/
+# Scratch/temp scripts
+scratch/
