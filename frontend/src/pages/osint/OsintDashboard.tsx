@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { FileDown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import StatCard from '@/components/shared/StatCard';
-import { osintApi, OsintFinding } from '@/api/osint';
+import { osintApi, OsintFinding, CveResult, ExploitSearchResult, DomainReputationResult, HashLookupResult } from '@/api/osint';
+import OsintToolModal, { ToolType } from './OsintToolModal';
 // SVG Icons
 const I = {
   tool: (
@@ -85,6 +87,26 @@ export default function OsintDashboard() {
   const [findings, setFindings] = useState<OsintFinding[]>(RECENT_FINDINGS);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [dynamicStats, setDynamicStats] = useState(STATS);
+  const [activeTool, setActiveTool] = useState<ToolType>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await osintApi.generateReport(findings);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'osint_report.pdf';
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Failed to generate report', e);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,20 +257,25 @@ export default function OsintDashboard() {
 
       {/* Cyber Security Tools Row */}
       <div className="section-heading mb-3 mt-2" style={{ fontSize: '13px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-        Analyst Toolbox (UI Mockups)
+        Analyst Toolbox
       </div>
       <div className="row g-3 mb-4">
         {[
-          { title: 'Vulnerability Scanner', desc: 'UI Mockup for CVE lookup & external service scan triggers.', icon: I.scan, action: 'Run Scan' },
-          { title: 'Exploit DB Search', desc: 'UI Mockup for searching proof-of-concepts and exploits.', icon: I.code, action: 'Search DB' },
-          { title: 'Domain Reputation', desc: 'UI Mockup for domain health, WHOIS, and passive DNS.', icon: I.globe, action: 'Check Domain' },
-          { title: 'Malware Sandbox', desc: 'UI Mockup for submitting file hashes for dynamic analysis.', icon: I.shield, action: 'Submit Hash' }
+          { title: 'Vulnerability Scanner', desc: 'CVE lookup & external service scan triggers.', icon: I.scan, action: 'Run Scan', type: 'cve' as ToolType },
+          { title: 'Port Scanner (Nmap)', desc: 'Scan common network ports for active services.', icon: I.tool, action: 'Scan Ports', type: 'nmap' as ToolType },
+          { title: 'Dark Web Search', desc: 'Check if an email was compromised in data breaches.', icon: I.database, action: 'Search Breach', type: 'breach' as ToolType },
+          { title: 'Exploit DB Search', desc: 'Search for proof-of-concepts and exploits.', icon: I.code, action: 'Search DB', type: 'exploit' as ToolType },
+          { title: 'Domain Reputation', desc: 'Check domain health and threat pulses.', icon: I.globe, action: 'Check Domain', type: 'domain' as ToolType },
+          { title: 'WHOIS Explorer', desc: 'Track domain history and registration records.', icon: I.search, action: 'WHOIS Lookup', type: 'whois' as ToolType },
+          { title: 'Malware Sandbox', desc: 'Submit file hashes for dynamic analysis.', icon: I.shield, action: 'Submit Hash', type: 'hash' as ToolType },
+          { title: 'IP Geolocation', desc: 'Locate IP addresses and view ISP/org details.', icon: I.search, action: 'Locate IP', type: 'ipgeo' as ToolType },
+          { title: 'MAC Address Lookup', desc: 'Identify hardware vendor by MAC address.', icon: I.tool, action: 'Lookup MAC', type: 'mac' as ToolType }
         ].map((tool, idx) => (
-          <div key={idx} className="col-12 col-md-6 col-xl-3">
+          <div key={idx} className="col-12 col-md-6 col-xl-4">
             <div className="card h-100 tool-card" style={{ transition: 'all 0.2s', cursor: 'pointer', background: 'rgba(30,41,59,0.3)' }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.5)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.boxShadow = 'none'; }}
-              onClick={() => alert(`This is a UI Mockup. The ${tool.title} tool is not actively connected to a backend execution engine.`)}
+              onClick={() => setActiveTool(tool.type)}
             >
               <div className="card-body" style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
@@ -277,10 +304,24 @@ export default function OsintDashboard() {
           <div className="card">
             <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="card-title">Live Intelligence Feed</span>
-              <span style={{ fontSize: '12px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} className="blink-anim" />
-                Live Updates Active
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <button
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                  className="btn"
+                  style={{
+                    padding: '4px 12px', fontSize: '12px', background: 'rgba(99,102,241,0.1)',
+                    color: '#818cf8', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  <FileDown size={14} />
+                  {isExporting ? 'Generating...' : 'Export to PDF'}
+                </button>
+                <span style={{ fontSize: '12px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} className="blink-anim" />
+                  Live Updates Active
+                </span>
+              </div>
             </div>
             <div style={{ padding: '0 4px' }}>
               <table className="table mb-0">
@@ -349,6 +390,12 @@ export default function OsintDashboard() {
           100% { opacity: 1; }
         }
       `}</style>
+
+      <OsintToolModal
+        isOpen={!!activeTool}
+        onClose={() => setActiveTool(null)}
+        toolType={activeTool}
+      />
     </div>
   );
 }

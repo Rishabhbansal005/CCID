@@ -47,56 +47,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // STEP 1: Get initial session — setLoading(false) as soon as we know the auth state
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setSupabaseUser(session?.user ?? null);
-      setLoading(false); // Auth state is resolved — stop showing spinner
-
-      // Profile fetch is best-effort and doesn't block rendering
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
-      }
-    }).catch(() => {
-      // Even on error, stop the loading spinner
-      setLoading(false);
-    });
-
-    // STEP 2: Listen for auth changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setSupabaseUser(session?.user ?? null);
-
-        if (session?.user) {
-          fetchUserProfile(session.user.id);
-        } else {
-          setUser(null);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    // Mock: immediately resolve auth state and auto-login
+    const fakeSession = { user: { id: 'mock-user-1', email: 'mock@agency.gov' } } as any;
+    setSession(fakeSession);
+    setSupabaseUser(fakeSession.user);
+    setUser({ id: 'mock-user-1', email: 'mock@agency.gov', full_name: 'Mock Analyst', role: 'investigator', created_at: new Date().toISOString() } as User);
+    setLoading(false);
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    // Mock login
+    const fakeSession = { user: { id: 'mock-user-1', email } } as any;
+    setSession(fakeSession);
+    setSupabaseUser(fakeSession.user);
+    setUser({ id: 'mock-user-1', email, full_name: 'Mock Analyst', role: 'investigator', created_at: new Date().toISOString() } as User);
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, role },
-      },
-    });
-    if (error) throw error;
+    const fakeSession = { user: { id: 'mock-user-1', email } } as any;
+    setSession(fakeSession);
+    setSupabaseUser(fakeSession.user);
+    setUser({ id: 'mock-user-1', email, full_name: fullName, role, created_at: new Date().toISOString() } as User);
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setSupabaseUser(null);
