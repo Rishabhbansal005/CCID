@@ -403,6 +403,7 @@ export interface NetworkAnalysisResult {
   conversations: IPConversation[];
   dns_queries: DNSQuery[];
   suspicious_indicators: SuspiciousIndicator[];
+  error_message?: string;
   created_at: string;
   updated_at: string;
 }

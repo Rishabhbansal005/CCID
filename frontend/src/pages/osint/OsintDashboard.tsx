@@ -254,6 +254,7 @@ export default function OsintDashboard() {
         </div>
       </div>
 
+
       {/* Cyber Security Tools Row */}
       <div className="section-heading mb-3 mt-2" style={{ fontSize: '13px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
         Analyst Toolbox
