@@ -1,6 +1,17 @@
 """CCID — Cyber Crime Investigation Dashboard
 FastAPI Backend Application
 """
+# Load .env FIRST — before any other imports — so os.environ is fully
+# populated when pydantic-settings caches the Settings singleton.
+import os as _os
+from pathlib import Path as _Path
+try:
+    from dotenv import load_dotenv as _load_dotenv
+    _env_path = _Path(__file__).parent.parent / ".env"
+    _load_dotenv(dotenv_path=_env_path, override=True)
+except ImportError:
+    pass  # python-dotenv not installed; rely on pydantic-settings
+
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
