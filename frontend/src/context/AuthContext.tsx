@@ -30,12 +30,10 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Pre-populate with mock session so the app never flickers to /login
-  const [session, setSession] = useState<Session | null>(MOCK_SESSION);
-  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(MOCK_SESSION.user as any);
-  const [user, setUser] = useState<User | null>(MOCK_USER);
-  // Start as false — session is already set, no async work needed
-  const [loading, setLoading] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Guard: only run Supabase listener once
   const listenerRegistered = useRef(false);
@@ -72,16 +70,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSession(s);
             setSupabaseUser(s.user);
           } else {
-            // Signed out — fall back to mock so app doesn't redirect to /login
-            setSession(MOCK_SESSION);
-            setSupabaseUser(MOCK_SESSION.user as any);
-            setUser(MOCK_USER);
+            setSession(null);
+            setSupabaseUser(null);
+            setUser(null);
           }
         });
 
+        setLoading(false);
         return () => subscription.unsubscribe();
       } catch {
-        // Supabase not configured — stay in mock mode, loading already false
+        setLoading(false);
       }
     };
 
@@ -104,54 +102,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { supabase } = await import('@/lib/supabase');
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      if (data.session) {
-        setSession(data.session);
-        setSupabaseUser(data.user);
-      }
-    } catch {
-      // Mock fallback
-      const fakeSession = { user: { id: MOCK_USER_ID, email } } as any as Session;
-      setSession(fakeSession);
-      setSupabaseUser(fakeSession.user as any);
-      setUser({ ...MOCK_USER, email });
+    const { supabase } = await import('@/lib/supabase');
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    if (data.session) {
+      setSession(data.session);
+      setSupabaseUser(data.user);
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: string) => {
-    try {
-      const { supabase } = await import('@/lib/supabase');
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            role: role,
-          },
+    const { supabase } = await import('@/lib/supabase');
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          role: role,
         },
-      });
-      if (error) throw error;
-      if (data.session) {
-        setSession(data.session);
-        setSupabaseUser(data.user);
-        setUser({ id: data.user!.id, email, full_name: fullName, role, created_at: new Date().toISOString() } as User);
-      } else if (data.user) {
-        // If email confirmation is required, session might be null. 
-        // We'll set a temporary mock session to keep the app working, or user can log in later.
-        const fakeSession = { user: { id: data.user.id, email } } as any as Session;
-        setSession(fakeSession);
-        setSupabaseUser(data.user);
-        setUser({ id: data.user.id, email, full_name: fullName, role, created_at: new Date().toISOString() } as User);
-      }
-    } catch {
-      const fakeSession = { user: { id: MOCK_USER_ID, email } } as any as Session;
-      setSession(fakeSession);
-      setSupabaseUser(fakeSession.user as any);
-      setUser({ id: MOCK_USER_ID, email, full_name: fullName, role, created_at: new Date().toISOString() } as User);
+      },
+    });
+    if (error) throw error;
+    if (data.session) {
+      setSession(data.session);
+      setSupabaseUser(data.user);
+      setUser({ id: data.user!.id, email, full_name: fullName, role, created_at: new Date().toISOString() } as User);
+    } else if (data.user) {
+      // If email confirmation is required, session might be null.
+      setSupabaseUser(data.user);
+      setUser({ id: data.user.id, email, full_name: fullName, role, created_at: new Date().toISOString() } as User);
     }
   };
 
@@ -160,10 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { supabase } = await import('@/lib/supabase');
       await supabase.auth.signOut();
     } catch { /* ignore */ }
-    // Keep mock session so we don't get redirected
-    setSession(MOCK_SESSION);
-    setSupabaseUser(MOCK_SESSION.user as any);
-    setUser(MOCK_USER);
+    setSession(null);
+    setSupabaseUser(null);
+    setUser(null);
   };
 
   return (

@@ -12,6 +12,7 @@ import type { Case } from '@/types';
 import dashboardApi from '@/api/dashboard';
 import casesApi from '@/api/cases';
 import { formatDistanceToNow } from 'date-fns';
+import LiveThreatMap from '@/components/dashboard/LiveThreatMap';
 
 /* ─── Emergency Helplines Data ─────────────────────────────── */
 const HELPLINES = [

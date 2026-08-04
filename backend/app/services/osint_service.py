@@ -29,30 +29,10 @@ class OsintService:
         # If no API key is provided, return a mock response that states it
         if not settings.alienvault_otx_key or settings.alienvault_otx_key == "paste_your_free_key_here":
             return {
-                "success": True,
-                "type": indicator_type,
-                "pulse_count": 3,
-                "findings": [
-                    {
-                        "id": "OTX-MOCK1",
-                        "entity": query,
-                        "type": "Malware C2 Communication (Mock Data)",
-                        "source": "AlienVault OTX",
-                        "severity": "High",
-                        "time": datetime.utcnow().strftime("%Y-%m-%d"),
-                        "url": "https://otx.alienvault.com"
-                    },
-                    {
-                        "id": "OTX-MOCK2",
-                        "entity": query,
-                        "type": "Suspicious Port Scan (Mock Data)",
-                        "source": "AlienVault OTX",
-                        "severity": "Medium",
-                        "time": datetime.utcnow().strftime("%Y-%m-%d"),
-                        "url": "https://otx.alienvault.com"
-                    }
-                ],
-                "stats": {"mentions": 12, "leaks": 3}
+                "success": False,
+                "error": "AlienVault OTX API Key is required. Please add ALIENVAULT_OTX_KEY to backend/.env",
+                "findings": [],
+                "stats": {"mentions": 0, "leaks": 0}
             }
 
         endpoint = f"{self.otx_url}/indicators/{indicator_type}/{query}/general"
@@ -222,8 +202,7 @@ class OsintService:
         if not settings.alienvault_otx_key or settings.alienvault_otx_key == "paste_your_free_key_here":
             return {
                 "success": False,
-                "error": "ALIENVAULT_OTX_KEY is not configured in backend.",
-                "domain": domain,
+                "error": "AlienVault OTX API Key is required. Please add ALIENVAULT_OTX_KEY to backend/.env",
             }
         endpoint = f"{self.otx_url}/indicators/domain/{domain}/general"
         async with httpx.AsyncClient() as client:
@@ -295,8 +274,7 @@ class OsintService:
         if not settings.alienvault_otx_key or settings.alienvault_otx_key == "paste_your_free_key_here":
             return {
                 "success": False,
-                "error": "ALIENVAULT_OTX_KEY is not configured in backend.",
-                "hash": file_hash,
+                "error": "AlienVault OTX API Key is required. Please add ALIENVAULT_OTX_KEY to backend/.env",
             }
         endpoint = f"{self.otx_url}/indicators/file/{file_hash}/general"
         async with httpx.AsyncClient() as client:
@@ -368,9 +346,7 @@ class OsintService:
                     "country": "Local Network (LAN)",
                     "city": "Internal Routing",
                     "isp": "Private IP Address",
-                    "org": "RFC 1918 / Local Router",
-                    "lat": "N/A",
-                    "lon": "N/A"
+                    "org": "RFC 1918 / Local Router"
                 }
         except ValueError:
             pass
@@ -497,83 +473,27 @@ class OsintService:
 
     async def lookup_whois(self, domain: str) -> Dict[str, Any]:
         """Perform a WHOIS lookup using RDAP (Registration Data Access Protocol)."""
-        endpoint = f"https://rdap.org/domain/{domain}"
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.get(endpoint, timeout=10.0)
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    registrar = "Unknown"
-                    creation_date = "Unknown"
-                    expiration_date = "Unknown"
-                    nameservers = []
-                    
-                    if "entities" in data:
-                        for entity in data["entities"]:
-                            if "roles" in entity and "registrar" in entity["roles"]:
-                                if "vcardArray" in entity:
-                                    try:
-                                        registrar = entity["vcardArray"][1][1][3]
-                                    except (IndexError, TypeError):
-                                        registrar = entity.get("handle", "Unknown")
-                                        
-                    if "events" in data:
-                        for event in data["events"]:
-                            if event.get("eventAction") == "registration":
-                                creation_date = event.get("eventDate", "Unknown")
-                            elif event.get("eventAction") == "expiration":
-                                expiration_date = event.get("eventDate", "Unknown")
-                                
-                    if "nameservers" in data:
-                        for ns in data["nameservers"]:
-                            nameservers.append(ns.get("ldhName", "Unknown"))
-                            
-                    return {
-                        "success": True,
-                        "domain": domain,
-                        "registrar": registrar,
-                        "creation_date": creation_date,
-                        "expiration_date": expiration_date,
-                        "nameservers": nameservers
-                    }
-                elif response.status_code == 404:
-                    return {"success": False, "error": "Domain not found or no RDAP record available."}
-                else:
-                    return {"success": False, "error": f"RDAP API returned {response.status_code}"}
-            except Exception as e:
-                return {"success": False, "error": str(e)}
+        query = domain.strip().lower()
+        if query.startswith("http://"):
+            query = query[7:]
+        if query.startswith("https://"):
+            query = query[8:]
+        query = query.split('/')[0].split(':')[0]
+        
+        is_ip = False
+        try:
+            ipaddress.ip_address(query)
+            is_ip = True
+        except ValueError:
+            pass
 
-    async def check_breach(self, email: str) -> Dict[str, Any]:
-        """Simulate a Dark Web / Data Breach search for an email."""
-        breaches = []
-        if len(email) > 5:
-            breaches.append({
-                "Name": "LinkedIn",
-                "Domain": "linkedin.com",
-                "BreachDate": "2012-05-05",
-                "DataClasses": ["Email addresses", "Passwords"],
-                "Description": "In May 2012, LinkedIn had 164 million email addresses and passwords exposed."
-            })
-            if "admin" in email.lower() or "test" in email.lower() or "info" in email.lower():
-                breaches.append({
-                    "Name": "Canva",
-                    "Domain": "canva.com",
-                    "BreachDate": "2019-05-24",
-                    "DataClasses": ["Email addresses", "Passwords", "Names", "Geographic locations"],
-                    "Description": "In May 2019, graphic-design tool Canva suffered a data breach."
-                })
-                
-        return {
-            "success": True,
-            "email": email,
-            "breaches": breaches,
-            "total_breaches": len(breaches)
-        }
-
-    async def lookup_whois(self, domain: str) -> Dict[str, Any]:
-        """Perform a WHOIS lookup using RDAP (Registration Data Access Protocol)."""
-        endpoint = f"https://rdap.org/domain/{domain}"
+        if is_ip:
+            endpoint = f"https://rdap.org/ip/{query}"
+        else:
+            if "." not in query and query != "localhost":
+                return {"success": False, "error": "Invalid domain name. Please include a valid TLD (e.g., .com, .org) or enter an IP address."}
+            endpoint = f"https://rdap.org/domain/{query}"
+            
         async with httpx.AsyncClient(follow_redirects=True) as client:
             try:
                 response = await client.get(endpoint, timeout=10.0)
@@ -607,14 +527,14 @@ class OsintService:
                             
                     return {
                         "success": True,
-                        "domain": domain,
+                        "domain": query,
                         "registrar": registrar,
                         "creation_date": creation_date,
                         "expiration_date": expiration_date,
                         "nameservers": nameservers
                     }
                 elif response.status_code == 404:
-                    return {"success": False, "error": "Domain not found or no RDAP record available."}
+                    return {"success": False, "error": "Domain or IP not found, or no RDAP record available."}
                 else:
                     return {"success": False, "error": f"RDAP API returned {response.status_code}"}
             except Exception as e:

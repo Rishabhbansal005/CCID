@@ -10,6 +10,21 @@ import logging
 router = APIRouter(prefix="/timeline", tags=["Timeline"])
 logger = logging.getLogger(__name__)
 
+@router.get("", response_model=list[TimelineEventResponse])
+async def list_all_timeline_events(
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    try:
+        db = get_supabase_admin()
+        query = db.table("timeline_events").select(
+            "*, case:cases(case_number, title), evidence:evidence(original_file_name), finding:findings(finding_number, title)"
+        )
+        result = query.order("event_time").execute()
+        return result.data or []
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 @router.get("/case/{case_id}", response_model=list[TimelineEventResponse])
 async def list_timeline_events(
@@ -23,7 +38,9 @@ async def list_timeline_events(
 ):
     try:
         db = get_supabase_admin()
-        query = db.table("timeline_events").select("*").eq("case_id", case_id)
+        query = db.table("timeline_events").select(
+            "*, case:cases(case_number, title), evidence:evidence(original_file_name), finding:findings(finding_number, title)"
+        ).eq("case_id", case_id)
         
         if evidence_id:
             query = query.eq("evidence_id", evidence_id)
