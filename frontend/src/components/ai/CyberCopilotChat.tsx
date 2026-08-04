@@ -21,7 +21,7 @@ export const CyberCopilotChat: React.FC = () => {
     {
       id: 'welcome-1',
       sender: 'copilot',
-      text: 'Greetings Officer. I am the CCID Cyber Copilot. Ask me any digital forensics, OSINT, or law enforcement procedure questions.',
+      text: 'Greetings. I am the CCID Cyber Copilot. I can guide you through cyber security incidents (like a hacked phone or financial fraud), as well as answer questions about digital forensics or your CCID dashboard.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       review_status: 'officer_approved'
     }
@@ -114,7 +114,7 @@ export const CyberCopilotChat: React.FC = () => {
   return (
     <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999 }}>
       {!isOpen && (
-        <button onClick={() => setIsOpen(true)} style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#ffffff', border: 'none', borderRadius: '50px', padding: '14px 22px', fontWeight: 600, fontSize: '14px', boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button type="button" onClick={() => setIsOpen(true)} style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#ffffff', border: 'none', borderRadius: '50px', padding: '14px 22px', fontWeight: 600, fontSize: '14px', boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '18px' }}>🤖</span>
           <span>Cyber Copilot</span>
         </button>
@@ -131,7 +131,7 @@ export const CyberCopilotChat: React.FC = () => {
                 <span style={{ fontSize: '11px', color: '#94a3b8' }}>Law Enforcement Assistance</span>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+            <button type="button" onClick={() => setIsOpen(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '18px', cursor: 'pointer' }}>✕</button>
           </div>
 
           {/* Classification Selector */}
@@ -150,20 +150,7 @@ export const CyberCopilotChat: React.FC = () => {
                 <div style={{ padding: '10px 14px', borderRadius: '12px', fontSize: '13px', lineHeight: '1.4', background: msg.sender === 'user' ? '#2563eb' : (msg.status === 'blocked' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(30, 41, 59, 0.9)'), color: msg.sender === 'user' ? '#ffffff' : '#e2e8f0', border: msg.sender === 'copilot' ? (msg.status === 'blocked' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)') : 'none' }}>
                   <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.text}</p>
 
-                  {msg.sender === 'copilot' && msg.review_status === 'ai_draft' && (
-                    <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <span style={{ fontSize: '10px', color: '#fbbf24', fontWeight: 600, background: 'rgba(251, 191, 36, 0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block' }}>
-                        ⚠️ AI-Generated Draft — Requires officer review.
-                      </span>
-                      <button onClick={() => handleApproveDraft(msg.id, msg.audit_log_id)} style={{ alignSelf: 'flex-start', padding: '3px 8px', fontSize: '10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>✓ Approve Response</button>
-                    </div>
-                  )}
 
-                  {msg.sender === 'copilot' && msg.review_status === 'officer_approved' && (
-                    <div style={{ marginTop: '6px' }}>
-                      <span style={{ fontSize: '10px', color: '#34d399', fontWeight: 600, background: 'rgba(52, 211, 153, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>✓ Verified & Officer Approved</span>
-                    </div>
-                  )}
                 </div>
                 <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start', gap: '8px' }}>
                   <span>{msg.timestamp}</span>

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import casesApi from '@/api/cases';
 import { StatusBadge, PriorityBadge } from '@/components/shared/Badges';
 import type { Case, CaseStatus, CasePriority } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -44,12 +44,8 @@ export default function CaseList() {
   const { data: allCases = [], isLoading, error } = useQuery({
     queryKey: ['cases', 'list'],
     queryFn: async (): Promise<Case[]> => {
-      const { data, error } = await supabase
-        .from('cases')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as Case[];
+      const response = await casesApi.list({ page: 1, page_size: 100 });
+      return response.items;
     },
     staleTime: 30_000,
   });

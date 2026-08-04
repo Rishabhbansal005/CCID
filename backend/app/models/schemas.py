@@ -263,6 +263,10 @@ class TimelineEventResponse(TimelineEventBase, TimestampMixin):
     evidence_id: Optional[str] = None
     finding_id: Optional[str] = None
     created_by: str
+    
+    case: Optional[Dict[str, Any]] = None
+    evidence: Optional[Dict[str, Any]] = None
+    finding: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True
@@ -331,6 +335,7 @@ class RiskAssessmentResponse(RiskAssessmentBase, TimestampMixin):
 class ReportBase(BaseModel):
     title: str = Field(..., min_length=3)
     report_type: str = "investigation"
+    report_format: str = "pdf"
     include_executive_summary: bool = True
     include_timeline: bool = True
     include_findings: bool = True

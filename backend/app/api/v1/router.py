@@ -5,7 +5,7 @@ from app.api.v1.endpoints import (
     browser_analysis, usb_analysis, correlations, enrichment,
     event_log_analysis, contact_submissions, suspects, osint, ai
 )
-from app.services.forensics import VolatilityAdapter, WiresharkAdapter, AutopsyAdapter, FTKAdapter
+from app.services.forensics import VolatilityAdapter, WiresharkAdapter, AutopsyAdapter, FTKAdapter, MobileAdapter, SIEMAdapter
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -48,6 +48,8 @@ async def list_forensic_tools():
         WiresharkAdapter().get_status(),
         AutopsyAdapter().get_status(),
         FTKAdapter().get_status(),
+        MobileAdapter().get_status(),
+        SIEMAdapter().get_status(),
     ]
     return {
         "tools": tools,
