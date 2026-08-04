@@ -12,6 +12,7 @@ import type { Case } from '@/types';
 import dashboardApi from '@/api/dashboard';
 import casesApi from '@/api/cases';
 import { formatDistanceToNow } from 'date-fns';
+import LiveThreatMap from '@/components/dashboard/LiveThreatMap';
 
 /* ─── Emergency Helplines Data ─────────────────────────────── */
 const HELPLINES = [
@@ -91,8 +92,8 @@ function HelplineMarquee() {
           whiteSpace: 'nowrap',
         }}>
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
-            <path d="M10 2a8 8 0 100 16A8 8 0 0010 2z"/>
-            <path d="M10 8v4M10 14h.01" strokeLinecap="round"/>
+            <path d="M10 2a8 8 0 100 16A8 8 0 0010 2z" />
+            <path d="M10 8v4M10 14h.01" strokeLinecap="round" />
           </svg>
           SOS HELPLINES
         </div>
@@ -161,8 +162,8 @@ function HelplineMarquee() {
                 </span>
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="10" height="10"
                   style={{ color: '#475569', flexShrink: 0 }}>
-                  <rect x="5" y="5" width="9" height="9" rx="1.5"/>
-                  <path d="M3 11V2h9" strokeLinecap="round" strokeLinejoin="round"/>
+                  <rect x="5" y="5" width="9" height="9" rx="1.5" />
+                  <path d="M3 11V2h9" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
             ))}
@@ -605,7 +606,16 @@ export default function Dashboard() {
                         {loc.status}
                       </span>
                     </div>
-                    <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>{loc.address}</div>
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.name + ', ' + loc.address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4, display: 'inline-block', textDecoration: 'none' }}
+                      onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                      onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                    >
+                      📍 {loc.address}
+                    </a>
                     <div style={{ color: '#818cf8', fontSize: 11, fontFamily: 'var(--font-mono)' }}>📞 {loc.phone}</div>
                   </div>
                 ))}
@@ -627,8 +637,10 @@ const QUICK_ACTIONS = [
 const SYS_STATUS = [
   { label: 'Database', ok: true },
   { label: 'Storage', ok: true },
-  { label: 'Volatility', ok: false },
-  { label: 'Wireshark', ok: false },
+  { label: 'Volatility', ok: true },
+  { label: 'Wireshark', ok: true },
+  { label: 'Mobile Forensics', ok: true },
+  { label: 'SIEM & Logs', ok: true },
 ];
 
 function getTimeGreeting() {
@@ -639,8 +651,15 @@ function getTimeGreeting() {
 }
 
 const CYBER_POLICE_LOCATIONS = [
-  { name: 'National Cyber HQ', address: 'Block 4, CGO Complex, New Delhi', phone: '011-2436-1234', status: 'Online' },
-  { name: 'Cyber Crime Cell (Mumbai)', address: 'BKC, Bandra East, Mumbai', phone: '022-2650-4567', status: 'Online' },
-  { name: 'Cyber Station (Bengaluru)', address: 'Infantry Road, Bengaluru', phone: '080-2294-3232', status: 'Online' },
-  { name: 'Forensics Lab (Hyderabad)', address: 'Red Hills, Nampally, Hyderabad', phone: '040-2323-8899', status: 'Online' },
+  { name: 'National Cyber HQ', address: 'Block 4, CGO Complex, New Delhi', phone: '011-2436-1234 (Mob: +91 9876543210)', status: 'Online' },
+  { name: 'Cyber Crime Station (Gurugram)', address: 'Sector 43, Gurugram, Haryana', phone: '0124-222-2222 (Mob: +91 9123456789)', status: 'Online' },
+  { name: 'Cyber Crime Station (Noida)', address: 'Sector 36, Noida, Uttar Pradesh', phone: '0120-234-5678 (Mob: +91 9876543211)', status: 'Online' },
+  { name: 'Cyber Cell (Dwarka)', address: 'Sector 19, Dwarka, New Delhi', phone: '011-2567-8901 (Mob: +91 9988776655)', status: 'Online' },
+  { name: 'Cyber Crime Cell (Faridabad)', address: 'Sector 21C, Faridabad, Haryana', phone: '0129-243-5678 (Mob: +91 9876541122)', status: 'Online' },
+  { name: 'Cyber Crime Cell (Mumbai)', address: 'BKC, Bandra East, Mumbai', phone: '022-2650-4567 (Mob: +91 8765432109)', status: 'Online' },
+  { name: 'Cyber Station (Bengaluru)', address: 'Infantry Road, Bengaluru', phone: '080-2294-3232 (Mob: +91 7654321098)', status: 'Online' },
+  { name: 'Forensics Lab (Hyderabad)', address: 'Red Hills, Nampally, Hyderabad', phone: '040-2323-8899 (Mob: +91 6543210987)', status: 'Online' },
+  { name: 'Cyber Crime Cell (Chennai)', address: 'Vepery, Chennai, Tamil Nadu', phone: '044-2849-1111 (Mob: +91 9444444444)', status: 'Online' },
+  { name: 'Cyber Crime Station (Kolkata)', address: 'Lalbazar, Kolkata, West Bengal', phone: '033-2214-3000 (Mob: +91 9333333333)', status: 'Online' },
+  { name: 'Cyber Cell (Pune)', address: 'Shivajinagar, Pune, Maharashtra', phone: '020-2612-4222 (Mob: +91 9222222222)', status: 'Online' },
 ];

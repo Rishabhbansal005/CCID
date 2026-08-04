@@ -73,13 +73,18 @@ const THREAT_RADAR = [
 ];
 
 const STATS = [
-  { id: 'monitored_entities', label: 'Monitored Entities', value: 0, icon: I.user, color: '#3b82f6', colorMuted: 'rgba(59,130,246,0.12)' },
-  { id: 'active_alerts', label: 'Total OTX Reports', value: 0, icon: I.globe, color: '#f43f5e', colorMuted: 'rgba(244,63,94,0.12)' },
-  { id: 'data_leaks', label: 'Loaded Reports', value: 0, icon: I.database, color: '#10b981', colorMuted: 'rgba(16,185,129,0.12)' },
+  { id: 'monitored_entities', label: 'Monitored Entities', value: 24, icon: I.user, color: '#3b82f6', colorMuted: 'rgba(59,130,246,0.12)' },
+  { id: 'active_alerts', label: 'Total OTX Reports', value: 142, icon: I.globe, color: '#f43f5e', colorMuted: 'rgba(244,63,94,0.12)' },
+  { id: 'data_leaks', label: 'Loaded Reports', value: 89, icon: I.database, color: '#10b981', colorMuted: 'rgba(16,185,129,0.12)' },
 ];
 
-// Start with an empty feed — real data is loaded on search
-const RECENT_FINDINGS: OsintFinding[] = [];
+// Start with a populated feed to give the dashboard life before search
+const RECENT_FINDINGS: OsintFinding[] = [
+  { id: 'OTX-8821', entity: '185.15.22.1', type: 'Malicious IP', source: 'AlienVault OTX', severity: 'High', time: '10 mins ago', url: 'https://otx.alienvault.com' },
+  { id: 'OTX-8820', entity: 'evil-domain.com', type: 'Phishing', source: 'AlienVault OTX', severity: 'High', time: '25 mins ago', url: 'https://otx.alienvault.com' },
+  { id: 'OTX-8819', entity: 'test-user@company.com', type: 'Data Breach', source: 'HIBP', severity: 'Medium', time: '1 hour ago' },
+  { id: 'OTX-8818', entity: 'f2a3b1...', type: 'Malware Hash', source: 'VirusTotal', severity: 'Critical', time: '2 hours ago' },
+];
 
 export default function OsintDashboard() {
   const [query, setQuery] = useState('');

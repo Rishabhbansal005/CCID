@@ -7,6 +7,7 @@ from app.core.supabase_client import get_supabase_admin
 from app.core.config import settings
 from app.models.schemas import ReportCreate, ReportResponse, MessageResponse
 from app.services.report_service import generate_case_report
+from app.services.ppt_service import generate_case_ppt
 import logging
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
@@ -36,27 +37,43 @@ async def _generate_report_task(report_id: str, case_id: str, config: dict, inve
         correlations_res = db.table("correlations").select("*").eq("case_id", case_id).execute()
         correlations = correlations_res.data or []
 
-        # Generate PDF
-        pdf_bytes = generate_case_report(
-            case=case,
-            evidence_list=evidence,
-            findings=findings,
-            timeline_events=timeline,
-            risk_assessment=risk,
-            investigator=investigator,
-            config=config,
-            memory_results=memory_results,
-            correlations=correlations,
-        )
+        # Generate PDF or PPT
+        report_format = config.get("report_format", "pdf")
+        if report_format == "ppt":
+            file_bytes = generate_case_ppt(
+                case=case,
+                evidence_list=evidence,
+                findings=findings,
+                timeline_events=timeline,
+                risk_assessment=risk,
+                investigator=investigator,
+                config=config,
+            )
+            file_ext = "pptx"
+            content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        else:
+            file_bytes = generate_case_report(
+                case=case,
+                evidence_list=evidence,
+                findings=findings,
+                timeline_events=timeline,
+                risk_assessment=risk,
+                investigator=investigator,
+                config=config,
+                memory_results=memory_results,
+                correlations=correlations,
+            )
+            file_ext = "pdf"
+            content_type = "application/pdf"
 
         # Upload to storage — use a consistent bucket and persist it to the record
         upload_bucket = settings.storage_bucket or "forensic_uploads"
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        storage_path = f"cases/{case_id}/reports/{report_id}_{timestamp}.pdf"
+        storage_path = f"cases/{case_id}/reports/{report_id}_{timestamp}.{file_ext}"
         db.storage.from_(upload_bucket).upload(
             path=storage_path,
-            file=pdf_bytes,
-            file_options={"content-type": "application/pdf"},
+            file=file_bytes,
+            file_options={"content-type": content_type},
         )
 
         # Update report record — persist the exact bucket used so download matches
@@ -64,11 +81,11 @@ async def _generate_report_task(report_id: str, case_id: str, config: dict, inve
             "status": "ready",
             "storage_path": storage_path,
             "storage_bucket": upload_bucket,
-            "file_size": len(pdf_bytes),
+            "file_size": len(file_bytes),
             "generated_at": datetime.utcnow().isoformat(),
         }).eq("id", report_id).execute()
 
-        logger.info(f"Report {report_id} generated successfully ({len(pdf_bytes)} bytes)")
+        logger.info(f"Report {report_id} generated successfully ({len(file_bytes)} bytes)")
 
     except Exception as e:
         logger.error(f"Report generation failed for {report_id}: {e}")
@@ -123,6 +140,7 @@ async def generate_report(
             "include_findings": report_data.include_findings,
             "include_evidence_list": report_data.include_evidence_list,
             "include_risk_assessment": report_data.include_risk_assessment,
+            "report_format": report_data.report_format,
         }
 
         background_tasks.add_task(

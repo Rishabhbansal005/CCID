@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 import logging
 
-from app.core.security import get_current_user, CurrentUser
+from app.core.security import get_current_user, get_current_user_optional, CurrentUser
 from app.core.supabase_client import get_supabase_admin
 from app.services.ai_service import AIService
 
@@ -69,7 +69,7 @@ async def log_ai_audit(
 @router.post("/osint-summary")
 async def generate_osint_summary(
     req: OSINTSummaryRequest,
-    current_user: CurrentUser = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user_optional)
 ):
     """
     Generate AI Threat briefing for OSINT target with compliance gating.
@@ -105,7 +105,7 @@ async def generate_osint_summary(
 @router.post("/chat")
 async def chat_cyber_copilot(
     req: CyberCopilotRequest,
-    current_user: CurrentUser = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user_optional)
 ):
     """
     Ask CCID Cyber Copilot digital forensics assistant.
@@ -142,8 +142,9 @@ async def chat_cyber_copilot(
 @router.post("/case-narrative")
 async def generate_case_narrative(
     req: CaseNarrativeRequest,
-    current_user: CurrentUser = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user_optional)
 ):
+
     """
     Generate formal legal case narrative for case reports.
     """

@@ -43,6 +43,15 @@ class WiresharkAdapter:
         found = shutil.which("tshark")
         return found
 
+    def get_status(self) -> Dict[str, Any]:
+        available = self.is_available()
+        return {
+            "tool": "Wireshark / tshark",
+            "available": available,
+            "binary_path": self._get_tshark_path() or "Not found",
+            "status": "ready" if available else "not_installed",
+        }
+
     async def analyze_pcap(self, pcap_path: str) -> Dict[str, Any]:
         """
         Parse a PCAP or PCAPNG file and return detailed network analysis statistics.

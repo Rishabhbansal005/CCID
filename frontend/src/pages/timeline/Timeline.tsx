@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import timelineApi from '@/api/timeline';
+import casesApi from '@/api/cases';
 import { format, formatDistanceToNow, isAfter, isBefore, parseISO } from 'date-fns';
 
 // ─── Types ───────────────────────────────────────────────────
@@ -156,9 +158,8 @@ function EventDrawer({
   const { data: cases = [] } = useQuery({
     queryKey: ['cases', 'for-timeline'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('cases').select('id, case_number, title').order('created_at', { ascending: false });
-      return data ?? [];
+      const data = await casesApi.list();
+      return data.items ?? [];
     },
   });
 
@@ -192,25 +193,22 @@ function EventDrawer({
     mutationFn: async () => {
       const payload = {
         case_id: form.case_id,
-        evidence_id: form.evidence_id || null,
-        finding_id: form.finding_id || null,
+        evidence_id: form.evidence_id || undefined,
+        finding_id: form.finding_id || undefined,
         event_time: new Date(form.event_time).toISOString(),
         title: form.title,
-        description: form.description || null,
+        description: form.description || undefined,
         event_type: form.event_type,
-        source: form.source || null,
-        source_artifact: form.source_artifact || null,
+        source: form.source || undefined,
+        source_artifact: form.source_artifact || undefined,
         importance: form.importance,
         is_confirmed: form.is_confirmed,
         tags: form.tags,
       };
       if (editing) {
-        const { error } = await supabase.from('timeline_events').update(payload).eq('id', editing.id);
-        if (error) throw error;
+        await timelineApi.update(editing.id, payload);
       } else {
-        const { error } = await supabase.from('timeline_events')
-          .insert({ ...payload, created_by: supabaseUser?.id });
-        if (error) throw error;
+        await timelineApi.create(payload);
       }
     },
     onSuccess: () => {
@@ -606,17 +604,8 @@ export default function Timeline() {
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['timeline', 'list'],
     queryFn: async (): Promise<TimelineEvent[]> => {
-      const { data, error } = await supabase
-        .from('timeline_events')
-        .select(`
-          *,
-          case:cases(case_number, title),
-          evidence:evidence(original_file_name),
-          finding:findings(finding_number, title)
-        `)
-        .order('event_time', { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as TimelineEvent[];
+      const data = await timelineApi.listAll();
+      return data as TimelineEvent[];
     },
     staleTime: 30_000,
   });
@@ -624,8 +613,8 @@ export default function Timeline() {
   const { data: cases = [] } = useQuery({
     queryKey: ['cases', 'for-timeline-filter'],
     queryFn: async () => {
-      const { data } = await supabase.from('cases').select('id, case_number, title').order('created_at', { ascending: false });
-      return data ?? [];
+      const data = await casesApi.list();
+      return data.items ?? [];
     },
   });
 
@@ -645,8 +634,7 @@ export default function Timeline() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('timeline_events').delete().eq('id', id);
-      if (error) throw error;
+      await timelineApi.delete(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeline'] });

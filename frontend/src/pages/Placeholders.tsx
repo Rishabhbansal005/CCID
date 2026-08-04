@@ -118,6 +118,20 @@ const Icons = {
       <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" />
     </svg>
   ),
+  mobile: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
+      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+      <line x1="12" y1="18" x2="12.01" y2="18" />
+    </svg>
+  ),
+  siem: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
+      <path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="M2 15h10" />
+      <path d="M9 18l3-3-3-3" />
+    </svg>
+  ),
 };
 
 // ── Individual Placeholder Pages ─────────────────────────────
@@ -287,5 +301,19 @@ const FORENSIC_TOOLS = [
     description: 'Forensic disk imaging tool for creating verified evidence copies',
     capabilities: ['Disk Imaging', 'Image Verification', 'Evidence Containers', 'Image Mounting'],
     adapterPath: 'services/forensics/ftk_adapter.py',
+  },
+  {
+    name: 'Mobile Forensics',
+    icon: Icons.mobile,
+    description: 'Mobile device extractions parsing (iOS/Android logs, apps, messages)',
+    capabilities: ['Parse Extractions', 'Extract Messages', 'Location History', 'App Analysis'],
+    adapterPath: 'services/forensics/mobile_adapter.py',
+  },
+  {
+    name: 'SIEM & Log Analysis',
+    icon: Icons.siem,
+    description: 'Security Information and Event Management for log correlation',
+    capabilities: ['Parse EVTX', 'Syslog Ingestion', 'Alert Correlation', 'Sigma Rules'],
+    adapterPath: 'services/forensics/siem_adapter.py',
   },
 ];
