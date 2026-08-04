@@ -1,4 +1,5 @@
 import httpx
+import os
 from datetime import datetime
 from typing import Dict, Any, List
 import re
@@ -9,9 +10,23 @@ from app.core.config import settings
 class OsintService:
     def __init__(self):
         self.otx_url = "https://otx.alienvault.com/api/v1"
+        # Read directly from env so we always get the latest value,
+        # even if the .env file was updated after the process started.
+        self.otx_key = os.environ.get("ALIENVAULT_OTX_KEY", "") or settings.alienvault_otx_key
         self.headers = {}
-        if settings.alienvault_otx_key:
-            self.headers["X-OTX-API-KEY"] = settings.alienvault_otx_key
+        if self.otx_key:
+            self.headers["X-OTX-API-KEY"] = self.otx_key
+
+    def _normalize_query(self, query: str) -> str:
+        """Strip URL schemes, paths and trailing slashes so users can paste full URLs."""
+        query = query.strip()
+        # Remove protocol prefix (https://, http://)
+        query = re.sub(r'^https?://', '', query, flags=re.IGNORECASE)
+        # Remove everything after the first '/' (path, query string, fragments)
+        query = query.split('/')[0]
+        # Remove port number if present (e.g. example.com:8080)
+        query = re.sub(r':\d+$', '', query)
+        return query.strip().lower()
 
     def _determine_type(self, query: str) -> str:
         # Very basic regex for IP
@@ -24,10 +39,11 @@ class OsintService:
         return "domain"
 
     async def search_indicator(self, query: str) -> Dict[str, Any]:
+        query = self._normalize_query(query)
         indicator_type = self._determine_type(query)
         
-        # If no API key is provided, return a mock response that states it
-        if not settings.alienvault_otx_key:
+        # If no API key is provided, return a clear error
+        if not self.otx_key:
             return {
                 "success": False,
                 "error": "ALIENVAULT_OTX_KEY is not configured in backend.",
@@ -87,9 +103,14 @@ class OsintService:
                         }
                     }
                 else:
+                    err_body = ""
+                    try:
+                        err_body = response.text[:200]
+                    except Exception:
+                        pass
                     return {
                         "success": False,
-                        "error": f"API returned status {response.status_code}",
+                        "error": f"OTX API returned status {response.status_code}: {err_body}",
                         "findings": [],
                         "stats": {"mentions": 0, "leaks": 0}
                     }
@@ -102,65 +123,102 @@ class OsintService:
                 }
 
     async def get_cve_details(self, cve_id: str) -> Dict[str, Any]:
-        endpoint = f"https://cve.circl.lu/api/cve/{cve_id}"
+        """Look up CVE details. Tries NIST NVD first, falls back to cve.circl.lu."""
+        cve_id = cve_id.strip().upper()
+
+        # ── Primary: NIST NVD API (official, high limits, no auth required) ──
+        nvd_url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_id}"
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.get(endpoint, timeout=10.0)
-                if response.status_code == 200:
-                    data = response.json()
+                r = await client.get(nvd_url, timeout=12.0, headers={"Accept": "application/json"})
+                if r.status_code == 200:
+                    data = r.json()
+                    items = data.get("vulnerabilities", [])
+                    if items:
+                        cve_data = items[0].get("cve", {})
+                        # Description
+                        descriptions = cve_data.get("descriptions", [])
+                        summary = next(
+                            (d["value"] for d in descriptions if d.get("lang") == "en"),
+                            "No description available."
+                        )
+                        # CVSS score — prefer v3.1 > v3.0 > v2
+                        cvss = None
+                        metrics = cve_data.get("metrics", {})
+                        for key in ("cvssMetricV31", "cvssMetricV30", "cvssMetricV2"):
+                            entries = metrics.get(key, [])
+                            if entries:
+                                cvss = entries[0].get("cvssData", {}).get("baseScore")
+                                break
+                        # References
+                        refs = [ref.get("url") for ref in cve_data.get("references", []) if ref.get("url")][:5]
+                        # Severity label
+                        severity = None
+                        for key in ("cvssMetricV31", "cvssMetricV30"):
+                            entries = metrics.get(key, [])
+                            if entries:
+                                severity = entries[0].get("cvssData", {}).get("baseSeverity")
+                                break
+                        return {
+                            "success": True,
+                            "cve": cve_data.get("id", cve_id),
+                            "cvss": cvss,
+                            "severity": severity,
+                            "summary": summary,
+                            "references": refs,
+                            "published": cve_data.get("published", "")[:10],
+                            "lastModified": cve_data.get("lastModified", "")[:10],
+                            "source": "NIST NVD"
+                        }
+            except Exception:
+                pass  # Fall through to backup source
+
+        # ── Fallback: cve.circl.lu ────────────────────────────────────────────
+        circl_url = f"https://cve.circl.lu/api/cve/{cve_id}"
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.get(circl_url, timeout=10.0)
+                if r.status_code == 200:
+                    data = r.json()
                     if data:
-                        # Check for new CVE JSON 5.0+ format
                         if "cveMetadata" in data:
                             cna = data.get("containers", {}).get("cna", {})
-                            cve_id_out = data["cveMetadata"].get("cveId")
-                            
-                            # Extract CVSS
                             cvss = None
-                            metrics = cna.get("metrics", [])
-                            for m in metrics:
-                                if "cvssV3_1" in m:
-                                    cvss = m["cvssV3_1"].get("baseScore")
+                            for m in cna.get("metrics", []):
+                                for k in ("cvssV3_1", "cvssV3_0", "cvssV2_0"):
+                                    if k in m:
+                                        cvss = m[k].get("baseScore")
+                                        break
+                                if cvss:
                                     break
-                                elif "cvssV3_0" in m:
-                                    cvss = m["cvssV3_0"].get("baseScore")
-                                    break
-                                elif "cvssV2_0" in m:
-                                    cvss = m["cvssV2_0"].get("baseScore")
-                                    break
-                            
-                            # Extract summary
-                            summary = cna.get("title", "")
                             descriptions = cna.get("descriptions", [])
-                            if descriptions and isinstance(descriptions, list):
-                                summary = descriptions[0].get("value", summary)
-                                
-                            # Extract references
-                            refs_raw = cna.get("references", [])
-                            references = [r.get("url") for r in refs_raw if r.get("url")][:5]
-                            
+                            summary = descriptions[0].get("value", "") if descriptions else ""
+                            refs = [ref.get("url") for ref in cna.get("references", []) if ref.get("url")][:5]
                             return {
                                 "success": True,
-                                "cve": cve_id_out,
+                                "cve": data["cveMetadata"].get("cveId", cve_id),
                                 "cvss": cvss,
                                 "summary": summary,
-                                "references": references
+                                "references": refs,
+                                "source": "CIRCL"
                             }
-                        # Fallback to old format
                         elif data.get("id"):
                             return {
                                 "success": True,
                                 "cve": data.get("id"),
                                 "cvss": data.get("cvss"),
                                 "summary": data.get("summary"),
-                                "references": data.get("references", [])[:5]
+                                "references": data.get("references", [])[:5],
+                                "source": "CIRCL"
                             }
-                        else:
-                            return {"success": False, "error": "Invalid CVE data format received"}
-                    else:
-                        return {"success": False, "error": "CVE not found"}
-                return {"success": False, "error": f"API status {response.status_code}"}
+                elif r.status_code == 429:
+                    return {"success": False, "error": "Rate limited by CVE API. Please wait a moment and try again."}
+                else:
+                    return {"success": False, "error": f"CVE lookup failed (status {r.status_code})"}
             except Exception as e:
                 return {"success": False, "error": str(e)}
+
+        return {"success": False, "error": f"CVE '{cve_id}' not found in any database."}
 
     async def search_exploits(self, query: str) -> Dict[str, Any]:
         # Using a simulated response engine since most Exploit DB APIs require auth or are heavily restricted.
@@ -200,7 +258,8 @@ class OsintService:
 
     async def check_domain(self, domain: str) -> Dict[str, Any]:
         """Check domain reputation and WHOIS data via AlienVault OTX."""
-        if not settings.alienvault_otx_key:
+        domain = self._normalize_query(domain)
+        if not self.otx_key:
             return {
                 "success": False,
                 "error": "ALIENVAULT_OTX_KEY is not configured in backend.",
@@ -273,7 +332,8 @@ class OsintService:
 
     async def check_hash(self, file_hash: str) -> Dict[str, Any]:
         """Look up a file hash (MD5/SHA1/SHA256) via AlienVault OTX."""
-        if not settings.alienvault_otx_key:
+        file_hash = file_hash.strip().lower()
+        if not self.otx_key:
             return {
                 "success": False,
                 "error": "ALIENVAULT_OTX_KEY is not configured in backend.",
