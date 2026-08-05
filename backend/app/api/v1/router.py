@@ -3,7 +3,8 @@ from app.api.v1.endpoints import (
     cases, evidence, findings, auth, 
     timeline, reports, risk, network_analysis, memory_analysis, dashboard,
     browser_analysis, usb_analysis, correlations, enrichment,
-    event_log_analysis, contact_submissions, suspects, osint, ai
+    event_log_analysis, contact_submissions, suspects, osint, ai,
+    threat_intel
 )
 from app.services.forensics import VolatilityAdapter, WiresharkAdapter, AutopsyAdapter, FTKAdapter, MobileAdapter, SIEMAdapter
 
@@ -28,6 +29,7 @@ api_router.include_router(contact_submissions.router)
 api_router.include_router(suspects.router)
 api_router.include_router(osint.router, prefix="/osint", tags=["OSINT"])
 api_router.include_router(ai.router)
+api_router.include_router(threat_intel.router, prefix="/threat-intel", tags=["Threat Intelligence"])
 
 
 @api_router.get("/health", tags=["Health"])
