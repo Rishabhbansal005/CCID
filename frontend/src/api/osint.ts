@@ -34,20 +34,7 @@ export interface CveResult {
   references?: string[];
 }
 
-// Exploit Search
-export interface ExploitEntry {
-  id: string;
-  title: string;
-  type: string;
-  platform: string;
-  date: string;
-}
-export interface ExploitSearchResult {
-  success: boolean;
-  error?: string;
-  query?: string;
-  exploits?: ExploitEntry[];
-}
+
 
 // Domain Reputation
 export interface DomainPulse {
@@ -69,21 +56,7 @@ export interface DomainReputationResult {
   recent_pulses?: DomainPulse[];
 }
 
-// Hash Lookup
-export interface HashPulse {
-  name: string;
-  modified: string;
-}
-export interface HashLookupResult {
-  success: boolean;
-  error?: string;
-  hash?: string;
-  pulse_count?: number;
-  verdict?: string;
-  verdict_color?: string;
-  malware_families?: string[];
-  recent_pulses?: HashPulse[];
-}
+
 
 // IP Geolocation
 export interface IpGeoResult {
@@ -98,13 +71,7 @@ export interface IpGeoResult {
   lon?: number;
 }
 
-// MAC Address
-export interface MacResult {
-  success: boolean;
-  error?: string;
-  mac?: string;
-  vendor?: string;
-}
+
 
 // Nmap Scan
 export interface OpenPort {
@@ -121,14 +88,7 @@ export interface NmapResult {
   open_ports?: OpenPort[];
 }
 
-// Breach & WHOIS
-export interface BreachResult {
-  success: boolean;
-  error?: string;
-  email?: string;
-  breaches?: any[];
-  total_breaches?: number;
-}
+// WHOIS
 export interface WhoisResult {
   success: boolean;
   error?: string;
@@ -154,12 +114,7 @@ export const osintApi = {
     return response.data;
   },
 
-  searchExploits: async (query: string): Promise<ExploitSearchResult> => {
-    const response = await apiClient.get<ExploitSearchResult>('/osint/exploits', {
-      params: { query },
-    });
-    return response.data;
-  },
+
 
   checkDomain: async (domain: string): Promise<DomainReputationResult> => {
     const response = await apiClient.get<DomainReputationResult>('/osint/domain', {
@@ -168,12 +123,7 @@ export const osintApi = {
     return response.data;
   },
 
-  checkHash: async (hash: string): Promise<HashLookupResult> => {
-    const response = await apiClient.get<HashLookupResult>('/osint/hash', {
-      params: { hash },
-    });
-    return response.data;
-  },
+
 
   checkIpGeo: async (ip: string): Promise<IpGeoResult> => {
     const response = await apiClient.get<IpGeoResult>('/osint/ip-geo', {
@@ -182,12 +132,7 @@ export const osintApi = {
     return response.data;
   },
 
-  checkMac: async (mac: string): Promise<MacResult> => {
-    const response = await apiClient.get<MacResult>('/osint/mac', {
-      params: { mac },
-    });
-    return response.data;
-  },
+
 
   runNmap: async (target: string): Promise<NmapResult> => {
     const response = await apiClient.get<NmapResult>('/osint/nmap', {
@@ -196,14 +141,7 @@ export const osintApi = {
     return response.data;
   },
 
-  uploadHash: async (file: File): Promise<HashLookupResult> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const response = await apiClient.post<HashLookupResult>('/osint/hash/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
-  },
+
 
   generateReport: async (findings: OsintFinding[]): Promise<Blob> => {
     const response = await apiClient.post('/osint/report', { findings }, {
@@ -212,12 +150,7 @@ export const osintApi = {
     return response.data;
   },
 
-  checkBreach: async (email: string): Promise<BreachResult> => {
-    const response = await apiClient.get<BreachResult>('/osint/breach', {
-      params: { email },
-    });
-    return response.data;
-  },
+
 
   lookupWhois: async (domain: string): Promise<WhoisResult> => {
     const response = await apiClient.get<WhoisResult>('/osint/whois', {

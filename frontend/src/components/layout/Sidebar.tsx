@@ -82,6 +82,13 @@ const Icons = {
       <path d="M6 2H2v12h4M10 5l4 3-4 3M14 8H6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+  threat: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <circle cx="8" cy="8" r="6" />
+      <circle cx="8" cy="8" r="3" strokeDasharray="1 1" />
+      <path d="M8 1v2M8 13v2M1 8h2M13 8h2" strokeLinecap="round" />
+    </svg>
+  ),
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -95,6 +102,7 @@ const NAV_ITEMS: NavItem[] = [
       <path d="M2 8h12M8 2a9 9 0 013 6 9 9 0 01-3 6 9 9 0 01-3-6 9 9 0 013-6" />
     </svg>
   ), label: 'OSINT', section: 'ANALYSIS' },
+  { path: '/threat-intelligence', icon: Icons.threat, label: 'Live Threat Intel', section: 'ANALYSIS' },
   { path: '/timeline',   icon: Icons.timeline,  label: 'Timeline',         section: 'ANALYSIS' },
   { path: '/risk',       icon: Icons.risk,      label: 'Risk Assessment',  section: 'ANALYSIS' },
   { path: '/reports',    icon: Icons.reports,   label: 'Reports',          section: 'OUTPUT' },

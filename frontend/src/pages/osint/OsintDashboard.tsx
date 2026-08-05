@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FileDown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import StatCard from '@/components/shared/StatCard';
-import { osintApi, OsintFinding, CveResult, ExploitSearchResult, DomainReputationResult, HashLookupResult } from '@/api/osint';
+import { osintApi, OsintFinding, CveResult, DomainReputationResult } from '@/api/osint';
 import OsintToolModal, { ToolType } from './OsintToolModal';
 // SVG Icons
 const I = {
@@ -234,58 +234,7 @@ export default function OsintDashboard() {
         ))}
       </div>
 
-      {/* Charts Row */}
-      <div className="row g-3 mb-4">
-        <div className="col-12 col-xl-8">
-          <div className="card h-100">
-            <div className="card-header">
-              <span className="card-title">Discovery Volume (7 Days)</span>
-            </div>
-            <div className="card-body">
-              <ResponsiveContainer width="100%" height={260}>
-                <AreaChart data={ACTIVITY_DATA} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
-                  <defs>
-                    <linearGradient id="gMentions" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gLeaks" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
-                  />
-                  <Area type="monotone" dataKey="mentions" name="Mentions" stroke="#3b82f6" strokeWidth={2} fill="url(#gMentions)" />
-                  <Area type="monotone" dataKey="leaks" name="Data Leaks" stroke="#f43f5e" strokeWidth={2} fill="url(#gLeaks)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-        <div className="col-12 col-xl-4">
-          <div className="card h-100">
-            <div className="card-header">
-              <span className="card-title">Threat Sources</span>
-            </div>
-            <div className="card-body" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <ResponsiveContainer width="100%" height={260}>
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={THREAT_RADAR}>
-                  <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar name="Threat Activity" dataKey="A" stroke="#8b5cf6" strokeWidth={2} fill="#8b5cf6" fillOpacity={0.4} />
-                  <Tooltip contentStyle={{ background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff' }} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
 
       {/* Cyber Security Tools Row */}
@@ -296,13 +245,9 @@ export default function OsintDashboard() {
         {[
           { title: 'Vulnerability Scanner', desc: 'CVE lookup & external service scan triggers.', icon: I.scan, action: 'Run Scan', type: 'cve' as ToolType },
           { title: 'Port Scanner (Nmap)', desc: 'Scan common network ports for active services.', icon: I.tool, action: 'Scan Ports', type: 'nmap' as ToolType },
-          { title: 'Dark Web Search', desc: 'Check if an email was compromised in data breaches.', icon: I.database, action: 'Search Breach', type: 'breach' as ToolType },
-          { title: 'Exploit DB Search', desc: 'Search for proof-of-concepts and exploits.', icon: I.code, action: 'Search DB', type: 'exploit' as ToolType },
           { title: 'Domain Reputation', desc: 'Check domain health and threat pulses.', icon: I.globe, action: 'Check Domain', type: 'domain' as ToolType },
           { title: 'WHOIS Explorer', desc: 'Track domain history and registration records.', icon: I.search, action: 'WHOIS Lookup', type: 'whois' as ToolType },
-          { title: 'Malware Sandbox', desc: 'Submit file hashes for dynamic analysis.', icon: I.shield, action: 'Submit Hash', type: 'hash' as ToolType },
-          { title: 'IP Geolocation', desc: 'Locate IP addresses and view ISP/org details.', icon: I.search, action: 'Locate IP', type: 'ipgeo' as ToolType },
-          { title: 'MAC Address Lookup', desc: 'Identify hardware vendor by MAC address.', icon: I.tool, action: 'Lookup MAC', type: 'mac' as ToolType }
+          { title: 'IP Geolocation', desc: 'Locate IP addresses and view ISP/org details.', icon: I.search, action: 'Locate IP', type: 'ipgeo' as ToolType }
         ].map((tool, idx) => (
           <div key={idx} className="col-12 col-md-6 col-xl-4">
             <div className="card h-100 tool-card" style={{ transition: 'all 0.2s', cursor: 'pointer', background: 'rgba(30,41,59,0.3)' }}

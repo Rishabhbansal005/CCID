@@ -220,41 +220,7 @@ class OsintService:
 
         return {"success": False, "error": f"CVE '{cve_id}' not found in any database."}
 
-    async def search_exploits(self, query: str) -> Dict[str, Any]:
-        # Using a simulated response engine since most Exploit DB APIs require auth or are heavily restricted.
-        query_lower = query.lower()
-        mock_exploits = []
-        if "windows" in query_lower:
-            mock_exploits.append({"id": "EDB-44123", "title": "Windows 10 - Local Privilege Escalation", "type": "local", "platform": "windows", "date": "2023-11-12"})
-        if "linux" in query_lower:
-            mock_exploits.append({"id": "EDB-47163", "title": "Linux Kernel 5.0 - Local Privilege Escalation", "type": "local", "platform": "linux", "date": "2023-09-05"})
-        if "wordpress" in query_lower:
-            mock_exploits.append({"id": "EDB-50211", "title": "WordPress Plugin - SQL Injection", "type": "webapps", "platform": "php", "date": "2024-01-22"})
-        if "apache" in query_lower:
-            mock_exploits.append({"id": "EDB-51193", "title": "Apache HTTP Server 2.4.49 - Path Traversal & RCE", "type": "remote", "platform": "linux", "date": "2021-10-07"})
-        if "php" in query_lower:
-            mock_exploits.append({"id": "EDB-49965", "title": "PHP 8.1.0-dev - 'User-Agentt' Remote Code Execution", "type": "remote", "platform": "php", "date": "2021-04-06"})
-        if "log4j" in query_lower or "log4shell" in query_lower:
-            mock_exploits.append({"id": "EDB-50592", "title": "Apache Log4j 2 - Remote Code Execution (Log4Shell)", "type": "remote", "platform": "java", "date": "2021-12-12"})
-        if "ssh" in query_lower:
-            mock_exploits.append({"id": "EDB-45939", "title": "OpenSSH 7.2p1 - Username Enumeration", "type": "remote", "platform": "linux", "date": "2018-08-20"})
-        if "mysql" in query_lower or "sql" in query_lower:
-            mock_exploits.append({"id": "EDB-47562", "title": "MySQL 5.5.45 - Privilege Escalation", "type": "local", "platform": "linux", "date": "2019-10-01"})
 
-        # Add generic exploit for any query
-        mock_exploits.append({
-            "id": f"EDB-{abs(hash(query)) % 90000 + 10000}",
-            "title": f"{query.title()} - Remote Code Execution",
-            "type": "remote",
-            "platform": "multiple",
-            "date": datetime.now().strftime("%Y-%m-%d")
-        })
-
-        return {
-            "success": True,
-            "query": query,
-            "exploits": mock_exploits
-        }
 
     async def check_domain(self, domain: str) -> Dict[str, Any]:
         """Check domain reputation and WHOIS data via AlienVault OTX."""
@@ -330,73 +296,7 @@ class OsintService:
             except Exception as e:
                 return {"success": False, "error": str(e)}
 
-    async def check_hash(self, file_hash: str) -> Dict[str, Any]:
-        """Look up a file hash (MD5/SHA1/SHA256) via AlienVault OTX."""
-        file_hash = file_hash.strip().lower()
-        if not self.otx_key:
-            return {
-                "success": False,
-                "error": "ALIENVAULT_OTX_KEY is not configured in backend.",
-                "hash": file_hash,
-            }
-        endpoint = f"{self.otx_url}/indicators/file/{file_hash}/general"
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.get(endpoint, headers=self.headers, timeout=12.0)
-                if response.status_code == 200:
-                    data = response.json()
-                    pulse_info = data.get("pulse_info", {})
-                    pulses = pulse_info.get("pulses", [])
-                    pulse_count = pulse_info.get("count", 0)
 
-                    # Verdict
-                    if pulse_count == 0:
-                        verdict = "Clean / Unknown"
-                        verdict_color = "green"
-                    elif pulse_count <= 3:
-                        verdict = "Suspicious"
-                        verdict_color = "yellow"
-                    else:
-                        verdict = "Malicious"
-                        verdict_color = "red"
-
-                    # Collect malware families from tags
-                    all_tags: List[str] = []
-                    for p in pulses:
-                        all_tags.extend(p.get("tags", []))
-                    families = list(set(all_tags))[:10]
-
-                    recent_pulses = [
-                        {
-                            "name": p.get("name", ""),
-                            "modified": p.get("modified", "")[:10],
-                        }
-                        for p in pulses[:10]
-                    ]
-
-                    return {
-                        "success": True,
-                        "hash": file_hash,
-                        "pulse_count": pulse_count,
-                        "verdict": verdict,
-                        "verdict_color": verdict_color,
-                        "malware_families": families,
-                        "recent_pulses": recent_pulses,
-                    }
-                elif response.status_code == 404:
-                    return {
-                        "success": True,
-                        "hash": file_hash,
-                        "pulse_count": 0,
-                        "verdict": "Clean / Not in OTX",
-                        "verdict_color": "green",
-                        "malware_families": [],
-                        "recent_pulses": [],
-                    }
-                else:
-                    return {"success": False, "error": f"OTX API returned status {response.status_code}"}
-            except Exception as e:
-                return {"success": False, "error": str(e)}
 
     async def get_ip_geolocation(self, ip: str) -> Dict[str, Any]:
         """Look up IP Geolocation via ip-api.com"""
@@ -442,24 +342,7 @@ class OsintService:
             except Exception as e:
                 return {"success": False, "error": str(e)}
 
-    async def lookup_mac_address(self, mac: str) -> Dict[str, Any]:
-        """Look up MAC address vendor via macvendors.com"""
-        endpoint = f"https://api.macvendors.com/{mac}"
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.get(endpoint, timeout=10.0)
-                if response.status_code == 200:
-                    vendor = response.text
-                    return {
-                        "success": True,
-                        "mac": mac,
-                        "vendor": vendor
-                    }
-                elif response.status_code == 404:
-                    return {"success": False, "error": "MAC address vendor not found"}
-                return {"success": False, "error": f"API returned status {response.status_code}"}
-            except Exception as e:
-                return {"success": False, "error": str(e)}
+
 
     async def run_nmap(self, target: str, scan_type: str = "quick") -> Dict[str, Any]:
         """Run a Python-based port scan against a target."""
@@ -509,32 +392,7 @@ class OsintService:
             "total_scanned": len(ports_to_scan)
         }
 
-    async def check_breach(self, email: str) -> Dict[str, Any]:
-        """Simulate a Dark Web / Data Breach search for an email."""
-        breaches = []
-        if len(email) > 5:
-            breaches.append({
-                "Name": "LinkedIn",
-                "Domain": "linkedin.com",
-                "BreachDate": "2012-05-05",
-                "DataClasses": ["Email addresses", "Passwords"],
-                "Description": "In May 2012, LinkedIn had 164 million email addresses and passwords exposed."
-            })
-            if "admin" in email.lower() or "test" in email.lower() or "info" in email.lower():
-                breaches.append({
-                    "Name": "Canva",
-                    "Domain": "canva.com",
-                    "BreachDate": "2019-05-24",
-                    "DataClasses": ["Email addresses", "Passwords", "Names", "Geographic locations"],
-                    "Description": "In May 2019, graphic-design tool Canva suffered a data breach."
-                })
-                
-        return {
-            "success": True,
-            "email": email,
-            "breaches": breaches,
-            "total_breaches": len(breaches)
-        }
+
 
     async def lookup_whois(self, domain: str) -> Dict[str, Any]:
         """Perform a WHOIS lookup using RDAP (Registration Data Access Protocol)."""
@@ -585,32 +443,7 @@ class OsintService:
             except Exception as e:
                 return {"success": False, "error": str(e)}
 
-    async def check_breach(self, email: str) -> Dict[str, Any]:
-        """Simulate a Dark Web / Data Breach search for an email."""
-        breaches = []
-        if len(email) > 5:
-            breaches.append({
-                "Name": "LinkedIn",
-                "Domain": "linkedin.com",
-                "BreachDate": "2012-05-05",
-                "DataClasses": ["Email addresses", "Passwords"],
-                "Description": "In May 2012, LinkedIn had 164 million email addresses and passwords exposed."
-            })
-            if "admin" in email.lower() or "test" in email.lower() or "info" in email.lower():
-                breaches.append({
-                    "Name": "Canva",
-                    "Domain": "canva.com",
-                    "BreachDate": "2019-05-24",
-                    "DataClasses": ["Email addresses", "Passwords", "Names", "Geographic locations"],
-                    "Description": "In May 2019, graphic-design tool Canva suffered a data breach."
-                })
-                
-        return {
-            "success": True,
-            "email": email,
-            "breaches": breaches,
-            "total_breaches": len(breaches)
-        }
+
 
     async def lookup_whois(self, domain: str) -> Dict[str, Any]:
         """Perform a WHOIS lookup using RDAP (Registration Data Access Protocol)."""

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { osintApi, CveResult, ExploitSearchResult, DomainReputationResult, HashLookupResult } from '@/api/osint';
+import { osintApi, CveResult, DomainReputationResult } from '@/api/osint';
 
-export type ToolType = 'cve' | 'exploit' | 'domain' | 'hash' | 'ipgeo' | 'mac' | 'nmap' | 'breach' | 'whois' | null;
+export type ToolType = 'cve' | 'domain' | 'ipgeo' | 'nmap' | 'whois' | null;
 
 interface OsintToolModalProps {
   isOpen: boolean;
@@ -16,26 +15,7 @@ export default function OsintToolModal({ isOpen, onClose, toolType }: OsintToolM
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
 
-  const onDrop = async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length === 0 || toolType !== 'hash') return;
-    setIsLoading(true);
-    setError(null);
-    setResult(null);
-    try {
-      const res = await osintApi.uploadHash(acceptedFiles[0]);
-      if (res.success) {
-        setResult(res);
-      } else {
-        setError(res.error || 'No results found.');
-      }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during file upload.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   if (!isOpen || !toolType) return null;
 
@@ -46,23 +26,11 @@ export default function OsintToolModal({ isOpen, onClose, toolType }: OsintToolM
       action: 'Scan',
       apiCall: osintApi.lookupCve,
     },
-    exploit: {
-      title: 'Exploit DB Search',
-      placeholder: 'Enter keyword (e.g. wordpress, ssh)',
-      action: 'Search',
-      apiCall: osintApi.searchExploits,
-    },
     domain: {
       title: 'Domain Reputation',
       placeholder: 'Enter domain (e.g. example.com)',
       action: 'Check',
       apiCall: osintApi.checkDomain,
-    },
-    hash: {
-      title: 'Malware Sandbox (Hash Lookup)',
-      placeholder: 'Enter MD5, SHA1 or SHA256 hash',
-      action: 'Submit',
-      apiCall: osintApi.checkHash,
     },
     ipgeo: {
       title: 'IP Geolocation',
@@ -70,23 +38,11 @@ export default function OsintToolModal({ isOpen, onClose, toolType }: OsintToolM
       action: 'Locate',
       apiCall: osintApi.checkIpGeo,
     },
-    mac: {
-      title: 'MAC Address Lookup',
-      placeholder: 'Enter MAC address (e.g. 00:11:22:33:44:55)',
-      action: 'Lookup',
-      apiCall: osintApi.checkMac,
-    },
     nmap: {
       title: 'Port Scanner (Nmap)',
       placeholder: 'Enter IP address or Domain to scan',
       action: 'Scan Ports',
       apiCall: osintApi.runNmap,
-    },
-    breach: {
-      title: 'Dark Web / Breach Search',
-      placeholder: 'Enter email address (e.g. user@example.com)',
-      action: 'Search',
-      apiCall: osintApi.checkBreach,
     },
     whois: {
       title: 'WHOIS Explorer',
@@ -178,30 +134,7 @@ export default function OsintToolModal({ isOpen, onClose, toolType }: OsintToolM
             </button>
           </form>
 
-          {toolType === 'hash' && (
-            <div
-              {...getRootProps()}
-              style={{
-                marginBottom: '24px', padding: '32px', textAlign: 'center', cursor: 'pointer',
-                background: isDragActive ? 'rgba(99,102,241,0.1)' : 'rgba(15,23,42,0.5)',
-                border: isDragActive ? '2px dashed #818cf8' : '2px dashed rgba(255,255,255,0.1)',
-                borderRadius: '8px', color: isDragActive ? '#818cf8' : '#94a3b8', transition: 'all 0.2s'
-              }}
-            >
-              <input {...getInputProps()} />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="32" height="32" style={{ marginBottom: '12px', color: isDragActive ? '#818cf8' : '#64748b' }}>
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {isDragActive ? (
-                <p style={{ margin: 0, fontWeight: 500 }}>Drop the file here...</p>
-              ) : (
-                <div>
-                  <p style={{ margin: '0 0 4px 0', fontWeight: 500, color: '#e2e8f0' }}>Drag & drop a file here</p>
-                  <p style={{ margin: 0, fontSize: '12px' }}>to automatically extract and scan its hash (Max 50MB)</p>
-                </div>
-              )}
-            </div>
-          )}
+
 
           {error && (
             <div style={{ padding: '12px', background: 'rgba(244,63,94,0.1)', color: '#f43f5e', borderRadius: '8px', border: '1px solid rgba(244,63,94,0.3)', marginBottom: '16px' }}>
@@ -242,29 +175,7 @@ export default function OsintToolModal({ isOpen, onClose, toolType }: OsintToolM
                 </div>
               )}
 
-              {toolType === 'exploit' && (
-                <div>
-                  <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#f8fafc' }}>
-                    Exploits found for: <span style={{ color: '#818cf8' }}>{result.query}</span>
-                  </h3>
-                  {result.exploits && result.exploits.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {result.exploits.map((exp: any) => (
-                        <div key={exp.id} style={{ padding: '12px', background: 'rgba(15,23,42,0.5)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div style={{ fontWeight: 500, color: '#f8fafc', marginBottom: '4px', fontSize: '14px' }}>{exp.title}</div>
-                          <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#94a3b8' }}>
-                            <span><strong>Type:</strong> {exp.type}</span>
-                            <span><strong>Platform:</strong> {exp.platform}</span>
-                            <span><strong>Date:</strong> {exp.date}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>No exploits found matching this keyword.</p>
-                  )}
-                </div>
-              )}
+
 
               {toolType === 'domain' && (
                 <div>
@@ -326,53 +237,7 @@ export default function OsintToolModal({ isOpen, onClose, toolType }: OsintToolM
                 </div>
               )}
 
-              {toolType === 'hash' && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '14px', fontFamily: 'monospace', color: '#818cf8', wordBreak: 'break-all' }}>{result.hash}</h3>
-                      {result.filename && <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>Filename: {result.filename}</div>}
-                    </div>
-                    {result.verdict && (
-                      <span style={{
-                        background: result.verdict_color === 'red' ? 'rgba(244,63,94,0.2)' : result.verdict_color === 'yellow' ? 'rgba(251,146,60,0.2)' : 'rgba(16,185,129,0.2)',
-                        color: result.verdict_color === 'red' ? '#f43f5e' : result.verdict_color === 'yellow' ? '#fb923c' : '#10b981',
-                        padding: '4px 10px', borderRadius: '4px', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', flexShrink: 0, marginLeft: '12px'
-                      }}>
-                        {result.verdict}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>Associated Threat Pulses (OTX)</div>
-                    <div style={{ fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>{result.pulse_count || 0}</div>
-                  </div>
-                  {result.malware_families && result.malware_families.length > 0 && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <h4 style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>Malware Families:</h4>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {result.malware_families.map((m: string) => (
-                          <span key={m} style={{ padding: '2px 8px', background: 'rgba(244,63,94,0.1)', color: '#f43f5e', borderRadius: '4px', fontSize: '12px', border: '1px solid rgba(244,63,94,0.3)' }}>
-                            {m}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {result.recent_pulses && result.recent_pulses.length > 0 && (
-                    <div>
-                      <h4 style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>Recent Pulses:</h4>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {result.recent_pulses.slice(0, 4).map((p: any, idx: number) => (
-                          <div key={idx} style={{ fontSize: '13px', color: '#cbd5e1', background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '4px' }}>
-                            {p.name} <span style={{ color: '#64748b', fontSize: '11px', marginLeft: '6px' }}>({p.modified.split('T')[0]})</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+
 
               {toolType === 'ipgeo' && (
                 <div>
@@ -406,15 +271,7 @@ export default function OsintToolModal({ isOpen, onClose, toolType }: OsintToolM
                 </div>
               )}
 
-              {toolType === 'mac' && (
-                <div>
-                  <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#f8fafc', fontFamily: 'monospace' }}>{result.mac}</h3>
-                  <div>
-                    <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>Hardware Vendor</div>
-                    <div style={{ fontSize: '18px', color: '#e2e8f0', fontWeight: 500 }}>{result.vendor || 'Unknown Vendor'}</div>
-                  </div>
-                </div>
-              )}
+
 
               {toolType === 'nmap' && (
                 <div>
@@ -455,45 +312,7 @@ export default function OsintToolModal({ isOpen, onClose, toolType }: OsintToolM
                 </div>
               )}
 
-              {toolType === 'breach' && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ margin: 0, fontSize: '18px', color: '#f8fafc' }}>Breach Results for {result.email}</h3>
-                    <span style={{
-                      background: result.total_breaches > 0 ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)',
-                      color: result.total_breaches > 0 ? '#f43f5e' : '#10b981',
-                      padding: '4px 10px', borderRadius: '4px', fontWeight: 600, fontSize: '13px'
-                    }}>
-                      {result.total_breaches} Breaches Found
-                    </span>
-                  </div>
-                  
-                  {result.breaches && result.breaches.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      {result.breaches.map((b: any, idx: number) => (
-                        <div key={idx} style={{ padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <h4 style={{ margin: 0, color: '#f8fafc', fontSize: '16px' }}>{b.Name}</h4>
-                            <span style={{ color: '#94a3b8', fontSize: '12px' }}>{b.BreachDate}</span>
-                          </div>
-                          <p style={{ margin: '0 0 12px 0', color: '#cbd5e1', fontSize: '14px' }}>{b.Description}</p>
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                            {b.DataClasses.map((dc: string, dcIdx: number) => (
-                              <span key={dcIdx} style={{ padding: '2px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', color: '#e2e8f0' }}>
-                                {dc}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>
-                      No breaches found. This email appears safe!
-                    </div>
-                  )}
-                </div>
-              )}
+
 
               {toolType === 'whois' && (
                 <div>
