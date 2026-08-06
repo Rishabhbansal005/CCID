@@ -50,8 +50,9 @@ function getSeverity(confidence: number): string {
 function formatTime(utcTimeStr: string | null): string {
   if (!utcTimeStr) return '--:--:--';
   try {
-    // Ensure it's in ISO 8601 format by replacing space with 'T' if present
-    const isoString = utcTimeStr.includes('T') ? utcTimeStr : utcTimeStr.replace(' ', 'T');
+    // Remove " UTC" string if present and replace space with 'T'
+    const cleanStr = utcTimeStr.replace(' UTC', '');
+    const isoString = cleanStr.includes('T') ? cleanStr : cleanStr.replace(' ', 'T');
     const d = new Date(isoString + (isoString.endsWith('Z') ? '' : 'Z'));
     if (isNaN(d.getTime())) return utcTimeStr;
     return d.toLocaleTimeString('en-GB');
@@ -61,13 +62,35 @@ function formatTime(utcTimeStr: string | null): string {
 }
 
 export default function LiveThreatIntelligence() {
-  const { data, isLoading, isError, error, dataUpdatedAt } = useQuery({
+  const { data: threatFoxData, isLoading: tfLoading, isError: tfError, dataUpdatedAt: tfUpdatedAt } = useQuery({
     queryKey: ['threatfox_recent'],
     queryFn: threatIntelApi.getRecentThreatFoxIOCs,
-    refetchInterval: 60000, // Poll every 60s
+    refetchInterval: 60000,
   });
 
-  const events = data?.data || [];
+  const { data: urlhausData, isLoading: uhLoading, isError: uhError, dataUpdatedAt: uhUpdatedAt } = useQuery({
+    queryKey: ['urlhaus_recent'],
+    queryFn: threatIntelApi.getRecentURLhausIOCs,
+    refetchInterval: 60000,
+  });
+
+  const isLoading = tfLoading || uhLoading;
+  const isError = tfError && uhError; // Only offline if BOTH fail
+  
+  const events = useMemo(() => {
+    const tfEvents = threatFoxData?.data || [];
+    const uhEvents = urlhausData?.data || [];
+    return [...tfEvents, ...uhEvents].sort((a, b) => {
+      const parseDate = (dStr: string) => {
+        if (!dStr) return 0;
+        const cleanStr = dStr.replace(' UTC', '');
+        const iso = cleanStr.includes('T') ? cleanStr : cleanStr.replace(' ', 'T');
+        const d = new Date(iso + (iso.endsWith('Z') ? '' : 'Z'));
+        return isNaN(d.getTime()) ? 0 : d.getTime();
+      };
+      return parseDate(b.first_seen) - parseDate(a.first_seen);
+    });
+  }, [threatFoxData, urlhausData]);
   
   const stats = useMemo(() => {
     if (isError || isLoading) return { iocs: '--', c2: '--', malware: '--', sources: '1' };
@@ -89,7 +112,7 @@ export default function LiveThreatIntelligence() {
       iocs: events.length.toString(),
       c2: c2.toString(),
       malware: malware.toString(),
-      sources: '1' // Only ThreatFox for now
+      sources: ((threatFoxData?.success ? 1 : 0) + (urlhausData?.success ? 1 : 0)).toString()
     };
   }, [events, isError, isLoading]);
 
@@ -113,9 +136,9 @@ export default function LiveThreatIntelligence() {
       }));
   }, [events]);
 
-  const isOffline = isError || (data && !data.success);
-  const lastUpdatedStr = dataUpdatedAt 
-    ? `Last updated: ${formatDistanceToNow(dataUpdatedAt, { addSuffix: true })}`
+  const isOffline = (threatFoxData && !threatFoxData.success) && (urlhausData && !urlhausData.success);
+  const lastUpdatedStr = tfUpdatedAt || uhUpdatedAt
+    ? `Last updated: ${formatDistanceToNow(Math.max(tfUpdatedAt || 0, uhUpdatedAt || 0), { addSuffix: true })}`
     : 'AWAITING STREAM';
 
   return (
@@ -317,7 +340,7 @@ export default function LiveThreatIntelligence() {
         <div className="card-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(15,23,42,0.6)' }}>
           <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
             <Activity size={16} color="#94a3b8" />
-            THREATFOX INTELLIGENCE FEED
+            LIVE INTELLIGENCE FEED
           </span>
           <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>Displaying {events.length} recent events</span>
         </div>
@@ -356,12 +379,12 @@ export default function LiveThreatIntelligence() {
                   </td>
                 </tr>
               ) : (
-                events.slice(0, 100).map((event: ThreatFoxEvent) => {
+                events.slice(0, 100).map((event: ThreatFoxEvent, index: number) => {
                   const severity = getSeverity(event.confidence_level);
                   const malwareName = event.malware_printable || event.malware_family || 'Unknown';
                   
                   return (
-                    <tr key={event.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                    <tr key={event.id + '-' + index} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
                       <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)', color: '#94a3b8', whiteSpace: 'nowrap' }}>
                         {formatTime(event.first_seen)}
                       </td>
@@ -385,11 +408,11 @@ export default function LiveThreatIntelligence() {
                       </td>
                       <td style={{ padding: '12px 16px', color: '#cbd5e1', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>
                         <a 
-                          href={`https://threatfox.abuse.ch/ioc/${event.id}/`} 
+                          href={event.source === 'URLhaus' ? `https://urlhaus.abuse.ch/url/${event.id}/` : `https://threatfox.abuse.ch/ioc/${event.id}/`} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           style={{ 
-                            color: '#38bdf8', 
+                            color: event.source === 'URLhaus' ? '#eab308' : '#38bdf8', 
                             textDecoration: 'none',
                             cursor: 'pointer'
                           }}
@@ -412,8 +435,8 @@ export default function LiveThreatIntelligence() {
                         <span style={{ 
                           display: 'inline-block',
                           padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 500,
-                          background: 'rgba(56, 189, 248, 0.1)',
-                          color: '#38bdf8',
+                          background: event.source === 'URLhaus' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(56, 189, 248, 0.1)',
+                          color: event.source === 'URLhaus' ? '#eab308' : '#38bdf8',
                           textTransform: 'uppercase'
                         }}>
                           {event.source}
@@ -437,7 +460,6 @@ export default function LiveThreatIntelligence() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          {/* We only show ThreatFox for now as requested */}
           <div style={{ 
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '6px 12px', 
@@ -450,6 +472,19 @@ export default function LiveThreatIntelligence() {
           }}>
             <ShieldCheck size={14} color="#38bdf8" />
             ThreatFox
+          </div>
+          <div style={{ 
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '6px 12px', 
+            background: 'rgba(234, 179, 8, 0.05)',
+            border: '1px solid rgba(234, 179, 8, 0.2)',
+            borderRadius: '6px',
+            color: '#eab308',
+            fontSize: '12px',
+            fontWeight: 500
+          }}>
+            <Database size={14} color="#eab308" />
+            URLhaus
           </div>
         </div>
       </div>

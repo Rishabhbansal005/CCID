@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     # OSINT & AI Integration
     alienvault_otx_key: str = ""
     threatfox_auth_key: str = ""
+    urlhaus_auth_key: str = ""
     anthropic_api_key: str = ""
 
     # AI Integration Governance & Safety Settings

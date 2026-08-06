@@ -35,8 +35,6 @@ import FindingsList from '@/pages/findings/FindingsList';
 import FindingDetail from '@/pages/findings/FindingDetail';
 import FindingForm from '@/pages/findings/FindingForm';
 
-// Timeline module (fully implemented)
-import Timeline from '@/pages/timeline/Timeline';
 
 // Risk Assessment module
 import RiskList from '@/pages/risk_assessments/RiskList';
@@ -93,8 +91,7 @@ function App() {
                 <Route path="/findings" element={<FindingsList />} />
                 <Route path="/findings/new" element={<FindingForm mode="create" />} />
                 <Route path="/findings/:id" element={<FindingDetail />} />
-                <Route path="/timeline" element={<Timeline />} />
-                
+
                 {/* Risk Assessments */}
                 <Route path="/risk" element={<RiskList />} />
                 <Route path="/risk/new" element={<RiskForm mode="create" />} />
