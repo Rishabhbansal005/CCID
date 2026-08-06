@@ -50,7 +50,10 @@ function getSeverity(confidence: number): string {
 function formatTime(utcTimeStr: string | null): string {
   if (!utcTimeStr) return '--:--:--';
   try {
-    const d = new Date(utcTimeStr + 'Z');
+    // Ensure it's in ISO 8601 format by replacing space with 'T' if present
+    const isoString = utcTimeStr.includes('T') ? utcTimeStr : utcTimeStr.replace(' ', 'T');
+    const d = new Date(isoString + (isoString.endsWith('Z') ? '' : 'Z'));
+    if (isNaN(d.getTime())) return utcTimeStr;
     return d.toLocaleTimeString('en-GB');
   } catch (e) {
     return utcTimeStr;
@@ -381,7 +384,20 @@ export default function LiveThreatIntelligence() {
                         </div>
                       </td>
                       <td style={{ padding: '12px 16px', color: '#cbd5e1', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>
-                        {event.ioc}
+                        <a 
+                          href={`https://threatfox.abuse.ch/ioc/${event.id}/`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ 
+                            color: '#38bdf8', 
+                            textDecoration: 'none',
+                            cursor: 'pointer'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                        >
+                          {event.ioc}
+                        </a>
                       </td>
                       <td style={{ padding: '12px 16px', color: '#94a3b8' }}>
                         {malwareName !== 'Unknown' ? (
