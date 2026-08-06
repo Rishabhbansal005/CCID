@@ -34,5 +34,9 @@ export const threatIntelApi = {
   getRecentThreatFoxIOCs: async (): Promise<ThreatFoxResponse> => {
     const { data } = await apiClient.get<ThreatFoxResponse>('/threatfox/recent');
     return data;
+  },
+  getRecentURLhausIOCs: async (): Promise<ThreatFoxResponse> => {
+    const { data } = await apiClient.get<ThreatFoxResponse>('/urlhaus/recent');
+    return data;
   }
 };

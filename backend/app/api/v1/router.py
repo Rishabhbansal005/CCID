@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
     cases, evidence, findings, auth, 
-    timeline, reports, risk, network_analysis, memory_analysis, dashboard,
+    reports, risk, network_analysis, memory_analysis, dashboard,
     browser_analysis, usb_analysis, correlations, enrichment,
     event_log_analysis, contact_submissions, suspects, osint, ai,
     threat_intel
@@ -14,7 +14,6 @@ api_router.include_router(auth.router)
 api_router.include_router(cases.router)
 api_router.include_router(evidence.router)
 api_router.include_router(findings.router)
-api_router.include_router(timeline.router)
 api_router.include_router(reports.router)
 api_router.include_router(risk.router)
 api_router.include_router(network_analysis.router)

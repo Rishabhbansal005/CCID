@@ -40,14 +40,6 @@ const Icons = {
       <path d="M8 7v3M8 11.5h.01" strokeLinecap="round" />
     </svg>
   ),
-  timeline: (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
-      <circle cx="4" cy="4" r="1.5" />
-      <circle cx="4" cy="12" r="1.5" />
-      <circle cx="12" cy="8" r="1.5" />
-      <path d="M5.5 4.5L10.5 7M5.5 11.5L10.5 9" />
-    </svg>
-  ),
   risk: (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
       <path d="M8 1.5L2 14.5h12L8 1.5z" strokeLinejoin="round" />
@@ -103,7 +95,6 @@ const NAV_ITEMS: NavItem[] = [
     </svg>
   ), label: 'OSINT', section: 'ANALYSIS' },
   { path: '/threat-intelligence', icon: Icons.threat, label: 'Live Threat Intel', section: 'ANALYSIS' },
-  { path: '/timeline',   icon: Icons.timeline,  label: 'Timeline',         section: 'ANALYSIS' },
   { path: '/risk',       icon: Icons.risk,      label: 'Risk Assessment',  section: 'ANALYSIS' },
   { path: '/reports',    icon: Icons.reports,   label: 'Reports',          section: 'OUTPUT' },
 ];

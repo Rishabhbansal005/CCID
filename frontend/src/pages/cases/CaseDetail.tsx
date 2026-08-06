@@ -6,14 +6,13 @@ import evidenceApi from '@/api/evidence';
 import { StatusBadge, PriorityBadge } from '@/components/shared/Badges';
 import { format } from 'date-fns';
 import type { CaseStatus, CasePriority } from '@/types';
-import CaseTimeline from './CaseTimeline';
 import CaseFindings from './CaseFindings';
 import CaseRiskTab from './tabs/CaseRiskTab';
 import CaseReportsTab from './tabs/CaseReportsTab';
 import CaseCorrelationsTab from './tabs/CaseCorrelationsTab';
 import CaseSuspectsTab from './tabs/CaseSuspectsTab';
 
-type ActiveTab = 'overview' | 'evidence' | 'suspects' | 'findings' | 'correlations' | 'timeline' | 'risk' | 'reports';
+type ActiveTab = 'overview' | 'evidence' | 'suspects' | 'findings' | 'correlations' | 'risk' | 'reports';
 
 export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -91,7 +90,6 @@ export default function CaseDetail() {
     { key: 'suspects',     label: 'Suspects' },
     { key: 'findings',     label: 'Findings',     count: stats?.findings_count },
     { key: 'correlations', label: 'Correlations' },
-    { key: 'timeline',     label: 'Timeline',     count: stats?.timeline_events },
     { key: 'risk',         label: 'Risk' },
     { key: 'reports',      label: 'Reports' },
   ];
@@ -141,7 +139,6 @@ export default function CaseDetail() {
             { label: 'Evidence',  value: stats.evidence_count,   color: '#6366f1' },
             { label: 'Findings',  value: stats.findings_count,   color: '#f59e0b' },
             { label: 'Critical',  value: stats.critical_findings, color: '#f43f5e' },
-            { label: 'Events',    value: stats.timeline_events,   color: '#a78bfa' },
           ].map((s) => (
             <div key={s.label} className="col-6 col-xl-3">
               <div className="stat-card" style={{ ['--stat-color' as string]: s.color, ['--stat-color-muted' as string]: `${s.color}18` }}>
@@ -360,11 +357,6 @@ export default function CaseDetail() {
           {/* Suspects Tab */}
           {activeTab === 'suspects' && (
             <CaseSuspectsTab caseId={id!} />
-          )}
-
-          {/* Timeline Tab */}
-          {activeTab === 'timeline' && (
-            <CaseTimeline caseId={id!} />
           )}
 
           {/* Findings Tab */}
